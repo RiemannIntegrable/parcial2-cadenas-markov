@@ -1,0 +1,18 @@
+# Ignorar todo por defecto
+*
+
+# Permitir directorios (necesario para navegar la estructura)
+!*/
+
+# Permitir archivos específicos
+!*.py
+!*.ipynb
+!*.tex
+!*.png
+!*.gitkeep
+
+# Permitir archivos de configuración del proyecto
+!.gitignore
+!README.md
+!environment.yml
+!parcial2.pdf
