@@ -4,14 +4,14 @@
 # Permitir directorios (necesario para navegar la estructura)
 !*/
 
-# Permitir archivos específicos
+# Permitir archivos especï¿½ficos
 !*.py
 !*.ipynb
 !*.tex
 !*.png
 !*.gitkeep
 
-# Permitir archivos de configuración del proyecto
+# Permitir archivos de configuraciï¿½n del proyecto
 !.gitignore
 !README.md
 !environment.yml
