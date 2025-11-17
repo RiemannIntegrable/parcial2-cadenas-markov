@@ -1,0 +1,346 @@
+\section{Problema 1: Optimización de Posición de Titanio en Grilla 2D}
+
+\subsection{Introducción}
+
+En este problema se analiza la optimización de la posición de un átomo de Titanio (Ti) en una grilla bidimensional de 4×4 que contiene átomos de Neodimio (Nd) y Hierro (Fe). El objetivo es encontrar la posición que minimiza la energía cohesiva total del sistema.
+
+\subsubsection{Configuración del Sistema}
+
+La grilla está compuesta por:
+\begin{itemize}
+    \item 4 átomos de Neodimio (Nd) ubicados en el centro formando una subgrilla 2×2
+    \item 12 sitios disponibles para átomos de Fe o Ti en las posiciones restantes
+    \item 1 átomo de Titanio (Ti) que debe ubicarse en uno de los 12 sitios disponibles
+\end{itemize}
+
+\subsubsection{Modelo Energético: Potencial de Morse}
+
+La energía de interacción entre pares de átomos se calcula mediante el \textbf{Potencial de Morse}:
+
+\begin{equation}
+    U(r) = D_0 \left[ e^{-2\alpha(r-r_0)} - 2e^{-\alpha(r-r_0)} \right]
+\end{equation}
+
+donde:
+\begin{itemize}
+    \item $r$: distancia euclidiana entre dos átomos
+    \item $D_0$: profundidad del pozo de potencial (energía de enlace)
+    \item $\alpha$: parámetro que controla el ancho del pozo
+    \item $r_0$: distancia de equilibrio óptima entre átomos
+\end{itemize}
+
+Los parámetros utilizados para las diferentes interacciones atómicas son:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Interacción} & $D_0$ & $\alpha$ & $r_0$ \\
+\midrule
+Ti-Nd & 0.5 & 1.5 & 2.5 \\
+Ti-Fe & 0.3 & 1.2 & 2.0 \\
+Nd-Nd & 1.0 & 2.0 & 2.8 \\
+Fe-Fe & 0.4 & 1.3 & 2.2 \\
+Nd-Fe & 0.6 & 1.6 & 2.4 \\
+\bottomrule
+\end{tabular}
+\caption{Parámetros del Potencial de Morse para cada tipo de interacción atómica}
+\label{tab:morse_params}
+\end{table}
+
+\subsection{Metodología}
+
+Se implementaron dos enfoques para resolver el problema de optimización:
+
+\subsubsection{Búsqueda Exhaustiva (Fuerza Bruta)}
+
+Dado que el espacio de búsqueda es discreto y pequeño (12 posiciones posibles), se evaluaron todas las configuraciones posibles. Para cada posición $i \in \{0, 1, \ldots, 11\}$:
+
+\begin{enumerate}
+    \item Se coloca el átomo de Ti en la posición $i$
+    \item Se calcula la energía total del sistema $E_i$
+    \item Se registra la energía y se identifica el mínimo global
+\end{enumerate}
+
+Este método garantiza encontrar el óptimo global pero tiene complejidad $O(n)$ donde $n$ es el número de posiciones.
+
+\subsubsection{Simulated Annealing (Recocido Simulado)}
+
+El algoritmo de Simulated Annealing es una metaheurística inspirada en el proceso de recocido en metalurgia. Se implementó con las siguientes características:
+
+\paragraph{Algoritmo Base}
+\begin{enumerate}
+    \item Inicializar en una posición aleatoria
+    \item Para cada iteración $t$:
+    \begin{itemize}
+        \item Proponer un movimiento aleatorio a una posición vecina
+        \item Calcular el cambio de energía $\Delta E = E_{\text{nueva}} - E_{\text{actual}}$
+        \item Aceptar el movimiento con probabilidad:
+        \begin{equation}
+            P(\text{aceptar}) = \begin{cases}
+                1 & \text{si } \Delta E \leq 0 \\
+                e^{-\Delta E/T} & \text{si } \Delta E > 0
+            \end{cases}
+        \end{equation}
+        \item Actualizar la temperatura según el esquema de enfriamiento
+    \end{itemize}
+    \item Retornar la mejor solución encontrada
+\end{enumerate}
+
+\paragraph{Esquemas de Enfriamiento}
+
+Se experimentó con diferentes esquemas de enfriamiento:
+
+\begin{itemize}
+    \item \textbf{Geométrico}: $T_{t+1} = \alpha \cdot T_t$ con $\alpha \in [0.85, 0.99]$
+    \item \textbf{Exponencial}: $T_t = T_0 \cdot e^{-\beta t}$ con diferentes valores de $\beta$
+\end{itemize}
+
+\paragraph{Parámetros Utilizados}
+
+Después de experimentación exhaustiva, se determinó que los siguientes parámetros producen convergencia óptima:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Parámetro} & \textbf{Valor} \\
+\midrule
+Temperatura inicial ($T_0$) & 5.0 \\
+Factor de enfriamiento ($\alpha$) & 0.98 \\
+Número máximo de iteraciones & 20,000 \\
+\bottomrule
+\end{tabular}
+\caption{Parámetros óptimos para Simulated Annealing}
+\label{tab:sa_params}
+\end{table}
+
+\subsection{Resultados}
+
+\subsubsection{Búsqueda Exhaustiva}
+
+La búsqueda por fuerza bruta evaluó todas las 12 posiciones posibles y encontró:
+
+\begin{itemize}
+    \item \textbf{Posición óptima}: Índice 2, coordenadas $(0, 2)$
+    \item \textbf{Energía mínima}: 11098.457987
+    \item \textbf{Número de evaluaciones}: 12
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth]{images/fig1_configuracion_optima.png}
+\caption{Configuración óptima encontrada por búsqueda exhaustiva. El átomo de Ti (amarillo) se ubica en la posición índice 2 con coordenadas (0, 2), minimizando la energía total del sistema.}
+\label{fig:configuracion_optima}
+\end{figure}
+
+\paragraph{Análisis del Paisaje Energético}
+
+El análisis reveló que existen \textbf{dos niveles de energía} claramente diferenciados:
+
+\begin{enumerate}
+    \item \textbf{Nivel óptimo} ($E = 11098.457987$): 8 posiciones
+    \begin{itemize}
+        \item Posiciones en los bordes laterales de la grilla
+        \item Índices: 1, 2, 4, 5, 6, 7, 9, 10
+    \end{itemize}
+
+    \item \textbf{Nivel subóptimo} ($E = 11344.515855$): 4 posiciones
+    \begin{itemize}
+        \item Posiciones en las esquinas de la grilla
+        \item Índices: 0, 3, 8, 11
+        \item Gap energético: $\Delta E = 246.057869$
+    \end{itemize}
+\end{enumerate}
+
+Esta distribución bimodal indica una clara preferencia geométrica del sistema por ciertas posiciones.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{images/fig2_distribucion_energias.png}
+\caption{Distribución de energías para las 12 configuraciones posibles. Se observan claramente dos niveles de energía: 8 posiciones con energía óptima (11098.458) y 4 posiciones subóptimas en las esquinas (11344.516).}
+\label{fig:distribucion_energias}
+\end{figure}
+
+\subsubsection{Resultados de Simulated Annealing}
+
+\paragraph{Convergencia al Óptimo Global}
+
+Con los parámetros optimizados, Simulated Annealing demostró excelente desempeño:
+
+\begin{itemize}
+    \item \textbf{Mejor energía encontrada}: 11098.457987 (óptimo global)
+    \item \textbf{Gap con óptimo}: $0.00000000$ (convergencia exacta)
+    \item \textbf{Tasa de aceptación}: 0.435
+    \item \textbf{Tasa de mejora}: 0.423
+\end{itemize}
+
+\paragraph{Robustez: Múltiples Ejecuciones}
+
+Para validar la robustez del algoritmo, se ejecutaron 50 pruebas independientes con semillas aleatorias diferentes:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Métrica} & \textbf{Valor} \\
+\midrule
+Energía promedio & $11098.457987 \pm 0.000000$ \\
+Tasa de éxito (encontrar óptimo) & 100.0\% \\
+Ejecuciones exitosas & 50/50 \\
+Varianza de energía & $0.0000000000$ \\
+\bottomrule
+\end{tabular}
+\caption{Resultados de 50 ejecuciones independientes de Simulated Annealing}
+\label{tab:sa_multiple}
+\end{table}
+
+Estos resultados demuestran que con la configuración adecuada, Simulated Annealing alcanza consistentemente el óptimo global.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{images/fig3_sa_evolucion.png}
+\caption{Evolución de Simulated Annealing con parámetros óptimos ($T_0=5.0$, $\alpha=0.98$). Se muestra la convergencia de la energía (panel superior) y el decaimiento de la temperatura (panel inferior) a lo largo de 20,000 iteraciones.}
+\label{fig:sa_evolucion}
+\end{figure}
+
+\paragraph{Análisis de Sensibilidad de Parámetros}
+
+Se realizó un grid search exhaustivo probando 4 valores de temperatura inicial ($T_0 \in \{1.0, 2.0, 5.0, 10.0\}$) y 7 valores del factor de enfriamiento ($\alpha \in \{0.85, 0.90, 0.92, 0.95, 0.97, 0.98, 0.99\}$), para un total de 28 combinaciones:
+
+\begin{itemize}
+    \item \textbf{Configuraciones que encontraron el óptimo}: 28/28
+    \item \textbf{Tasa de éxito global}: 100.0\%
+\end{itemize}
+
+Este resultado demuestra que el algoritmo es \textbf{robusto} ante variaciones en los parámetros, posiblemente debido a:
+\begin{enumerate}
+    \item El espacio de búsqueda discreto y pequeño (12 posiciones)
+    \item La existencia de múltiples óptimos globales (8 posiciones con la misma energía mínima)
+    \item El número suficiente de iteraciones (20,000) que permite exploración exhaustiva
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{images/fig5_comparacion_esquemas.png}
+\caption{Comparación de diferentes esquemas de enfriamiento (geométrico y exponencial) mostrando la energía final alcanzada y la tasa de aceptación. Todos los esquemas probados convergen al óptimo global.}
+\label{fig:comparacion_esquemas}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/fig6_grid_search_parametros.png}
+\caption{Análisis exhaustivo del grid search de parámetros ($T_0 \times \alpha$). Los heatmaps muestran la tasa de éxito y la tasa de aceptación para las 28 combinaciones probadas. Todos los parámetros encuentran el óptimo global (100\% de éxito).}
+\label{fig:grid_search}
+\end{figure}
+
+\subsection{Análisis Físico: Hipótesis de Skelland}
+
+\subsubsection{Hipótesis}
+
+Según Skelland, se espera que el Titanio prefiera sitios \textbf{alejados de las tierras raras} (Neodimio), es decir, que la posición óptima maximice la distancia promedio Ti-Nd.
+
+\subsubsection{Análisis de Contribuciones Energéticas}
+
+Para la posición óptima (índice 2, coordenadas $(0, 2)$):
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Componente} & \textbf{Valor} \\
+\midrule
+Energía Ti-Nd & 692.263356 \\
+Energía Ti-Fe & 418.002216 \\
+Energía total de Ti & 1110.265573 \\
+\midrule
+Distancia mínima a Nd & 1.0000 \\
+Distancia promedio a Nd & 1.6626 \\
+Distancia mínima a Fe & 1.0000 \\
+\bottomrule
+\end{tabular}
+\caption{Análisis energético y geométrico de la posición óptima}
+\label{tab:optimal_analysis}
+\end{table}
+
+\subsubsection{Comparación: Mejor vs. Peor Posición}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Métrica} & \textbf{Mejor (índice 2)} & \textbf{Peor (índice 11)} \\
+\midrule
+Coordenadas & $(0, 2)$ & $(3, 3)$ \\
+Energía total & 11098.457987 & 11344.515855 \\
+Dist. promedio a Nd & 1.6626 & 2.1787 \\
+Dist. mínima a Nd & 1.0000 & 1.4142 \\
+\bottomrule
+\end{tabular}
+\caption{Comparación entre la mejor y peor configuración}
+\label{tab:best_vs_worst}
+\end{table}
+
+\subsubsection{Correlación Distancia-Energía}
+
+Se analizó la correlación entre la distancia promedio Ti-Nd y la energía total para las 12 posiciones:
+
+\begin{itemize}
+    \item \textbf{Correlación de Pearson}: $r = 0.8452$
+    \item \textbf{P-value}: $2.5770 \times 10^{-4}$ (altamente significativo)
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{images/fig4_correlacion_distancia_energia.png}
+\caption{Correlación entre distancia promedio Ti-Nd y energía total. La correlación positiva significativa ($r=0.8452$, $p<0.001$) indica que a mayor distancia al Nd, mayor es la energía (configuración menos estable), contradiciendo la hipótesis de Skelland.}
+\label{fig:correlacion}
+\end{figure}
+
+Dado que $r > 0$ con significancia estadística ($p < 0.001$), se observa una \textbf{correlación positiva significativa}:
+
+\begin{center}
+\textit{A MAYOR distancia promedio a Nd, MAYOR energía (menos estable)}
+\end{center}
+
+\subsubsection{Conclusión sobre la Hipótesis de Skelland}
+
+\begin{tcolorbox}[colback=red!5!white, colframe=red!75!black, title=Resultado]
+\textbf{La hipótesis de Skelland es RECHAZADA} para este sistema.
+
+\vspace{0.5em}
+
+Los datos experimentales muestran que:
+\begin{enumerate}
+    \item La posición óptima tiene \textbf{MENOR} distancia promedio a Nd (1.6626) que la peor posición (2.1787)
+    \item Existe correlación positiva significativa entre distancia a Nd y energía ($r = 0.8452$, $p < 0.001$)
+    \item El Ti prefiere posiciones \textbf{MÁS CERCANAS} a los átomos de Nd
+\end{enumerate}
+
+\vspace{0.5em}
+
+\textbf{Interpretación Física:} Aunque las interacciones Ti-Nd contribuyen positivamente a la energía (son repulsivas en comparación con otras interacciones), la configuración geométrica óptima requiere proximidad moderada a los átomos de Nd. Las posiciones en las esquinas, aunque más alejadas de Nd, resultan en configuraciones geométricas desfavorables que incrementan la energía total del sistema.
+\end{tcolorbox}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/fig7_mejor_vs_peor.png}
+\caption{Comparación visual entre la mejor configuración (izquierda, índice 2) y la peor configuración (derecha, índice 11). La posición óptima se encuentra en el borde lateral mientras que la peor está en una esquina.}
+\label{fig:mejor_vs_peor}
+\end{figure}
+
+\subsection{Conclusiones}
+
+\begin{enumerate}
+    \item Se identificó exitosamente la posición óptima para el átomo de Ti mediante búsqueda exhaustiva: posición $(0, 2)$ con energía mínima de 11098.457987
+
+    \item Existen 8 posiciones equivalentes con energía óptima (degeneración debido a simetría del sistema)
+
+    \item Simulated Annealing demostró convergencia robusta al óptimo global con tasa de éxito del 100\% en 50 ejecuciones independientes
+
+    \item El algoritmo es robusto ante variaciones de parámetros: todas las 28 combinaciones probadas encontraron el óptimo
+
+    \item La hipótesis de Skelland fue rechazada: el Ti prefiere posiciones más cercanas (no alejadas) a los átomos de Nd
+
+    \item El análisis de correlación reveló una relación positiva significativa ($r = 0.8452$, $p < 0.001$) entre distancia a Nd y energía
+\end{enumerate}
