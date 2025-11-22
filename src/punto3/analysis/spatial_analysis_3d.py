@@ -94,7 +94,16 @@ def calcular_centro_de_masa_3d(positions: np.ndarray) -> np.ndarray:
     Returns:
         Array (3,) con centro de masa (x, y, z)
     """
-    return np.mean(positions, axis=0)
+    n = len(positions)
+    centro = np.zeros(3, dtype=np.float64)
+    for i in range(n):
+        centro[0] += positions[i, 0]
+        centro[1] += positions[i, 1]
+        centro[2] += positions[i, 2]
+    centro[0] /= n
+    centro[1] /= n
+    centro[2] /= n
+    return centro
 
 
 def analizar_patron_espacial_3d(

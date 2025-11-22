@@ -55,6 +55,63 @@ La eficiencia computacional del algoritmo se logró mediante el cálculo increme
 
 sin necesidad de recalcular la energía total de toda la grilla, reduciendo la complejidad de $O(N^2)$ a $O(N)$ por iteración.
 
+\begin{lstlisting}[language=Python, caption=Loop principal de Simulated Annealing optimizado con Metropolis-Hastings]
+# Loop principal de SA (optimizado con Numba)
+for iteration in range(max_iterations):
+    # Calcular temperatura (enfriamiento geometrico)
+    T = T0 * (alpha ** iteration)
+
+    # PROPONER MOVIMIENTO: Swap Ti <-> Fe
+    ti_idx = np.random.randint(0, 8)
+    fe_idx = np.random.randint(0, n_Fe)
+    ti_x, ti_y = Ti_current[ti_idx]
+    fe_x, fe_y = Fe_current[fe_idx]
+
+    # CALCULAR Delta E INCREMENTAL (optimizacion critica)
+    delta_E = 0.0
+    for i in range(10):
+        for j in range(10):
+            if (i == ti_x and j == ti_y) or (i == fe_x and j == fe_y):
+                continue
+            atom_other = grid_current[i, j]
+
+            # Energia que perdemos (Ti_old y Fe_old)
+            r_old_Ti = sqrt((ti_x - i)**2 + (ti_y - j)**2)
+            U_old_Ti = morse_potential(r_old_Ti, params[Ti, other])
+            r_old_Fe = sqrt((fe_x - i)**2 + (fe_y - j)**2)
+            U_old_Fe = morse_potential(r_old_Fe, params[Fe, other])
+
+            # Energia que ganamos (Ti_new y Fe_new)
+            r_new_Ti = sqrt((fe_x - i)**2 + (fe_y - j)**2)
+            U_new_Ti = morse_potential(r_new_Ti, params[Ti, other])
+            r_new_Fe = sqrt((ti_x - i)**2 + (ti_y - j)**2)
+            U_new_Fe = morse_potential(r_new_Fe, params[Fe, other])
+
+            delta_E += (U_new_Ti + U_new_Fe - U_old_Ti - U_old_Fe)
+
+    # CRITERIO DE METROPOLIS-HASTINGS
+    accept = False
+    if delta_E < 0:
+        accept = True  # Mejora: siempre aceptar
+    elif T > 1e-10:
+        prob_aceptacion = exp(-delta_E / T)
+        if random() < prob_aceptacion:
+            accept = True  # Empeora: aceptar probabilisticamente
+
+    # APLICAR MOVIMIENTO SI SE ACEPTA
+    if accept:
+        grid_current[ti_x, ti_y] = 0  # Fe
+        grid_current[fe_x, fe_y] = 2  # Ti
+        Ti_current[ti_idx] = [fe_x, fe_y]
+        Fe_current[fe_idx] = [ti_x, ti_y]
+        energy_current += delta_E
+
+        if energy_current < energy_best:
+            energy_best = energy_current
+            grid_best = grid_current.copy()
+            Ti_best = Ti_current.copy()
+\end{lstlisting}
+
 \subsubsection{Ejecución Masiva en Paralelo}
 
 Para garantizar la robustez de los resultados, se ejecutaron \textbf{100,000 runs independientes} del algoritmo en paralelo, aprovechando 16 cores del procesador. El tiempo total de ejecución fue de 93.25 segundos ($\sim$0.001 s/run).

@@ -64,6 +64,32 @@ Dado que el espacio de búsqueda es discreto y pequeño (12 posiciones posibles)
 
 Este método garantiza encontrar el óptimo global pero tiene complejidad $O(n)$ donde $n$ es el número de posiciones.
 
+\begin{lstlisting}[language=Python, caption=Implementación de búsqueda exhaustiva por fuerza bruta]
+def brute_force_search(grid: Grid2D) -> Dict:
+    n_positions = grid.n_Fe_sites
+    all_energies = np.zeros(n_positions)
+    best_idx = 0
+    best_energy = np.inf
+
+    # Evaluar cada posicion posible
+    for idx in range(n_positions):
+        test_grid = grid.copy()
+        test_grid.set_Ti_position(idx)
+        energy = compute_total_energy(test_grid)
+        all_energies[idx] = energy
+
+        if energy < best_energy:
+            best_energy = energy
+            best_idx = idx
+
+    return {
+        'best_position_idx': best_idx,
+        'best_energy': best_energy,
+        'all_energies': all_energies,
+        'n_evaluations': n_positions
+    }
+\end{lstlisting}
+
 \subsubsection{Simulated Annealing (Recocido Simulado)}
 
 El algoritmo de Simulated Annealing es una metaheurística inspirada en el proceso de recocido en metalurgia. Se implementó con las siguientes características:
@@ -86,6 +112,48 @@ El algoritmo de Simulated Annealing es una metaheurística inspirada en el proce
     \end{itemize}
     \item Retornar la mejor solución encontrada
 \end{enumerate}
+
+\begin{lstlisting}[language=Python, caption=Loop principal de Simulated Annealing con criterio de Metropolis-Hastings]
+# Loop principal de SA
+for iteration in range(1, max_iter + 1):
+    # Proponer nueva posicion (uniformemente al azar)
+    proposed_position = rng.integers(0, n_positions)
+
+    # Calcular energia de la propuesta
+    working_grid.set_Ti_position(proposed_position)
+    proposed_energy = compute_total_energy(working_grid)
+
+    # Cambio de energia
+    delta_E = proposed_energy - current_energy
+
+    # Temperatura actual
+    T = cooling_schedule(iteration)
+
+    # CRITERIO DE METROPOLIS-HASTINGS
+    accept = False
+    if delta_E <= 0:
+        # Siempre aceptar mejoras
+        accept = True
+        n_improved += 1
+    else:
+        # Aceptar empeoramientos probabilisticamente
+        acceptance_probability = np.exp(-delta_E / T)
+        if rng.random() < acceptance_probability:
+            accept = True
+
+    # Aplicar movimiento si se acepta
+    if accept:
+        current_position = proposed_position
+        current_energy = proposed_energy
+        n_accepted += 1
+
+        if current_energy < best_energy:
+            best_position = current_position
+            best_energy = current_energy
+    else:
+        # Rechazar: volver a posicion anterior
+        working_grid.set_Ti_position(current_position)
+\end{lstlisting}
 
 \paragraph{Esquemas de Enfriamiento}
 

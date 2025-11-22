@@ -256,3 +256,21 @@ def crear_configuracion_inicial(seed: Optional[int] = None) -> Tuple[np.ndarray,
     assert len(Fe_indices) == 88, f"Esperados 88 índices Fe, encontrados {len(Fe_indices)}"
 
     return all_positions, atom_types, Ti_indices, Fe_indices, Nd_positions
+
+
+def get_Ti_indices_from_types(atom_types: np.ndarray) -> np.ndarray:
+    """
+    Extrae los índices de los átomos de Ti desde atom_types.
+
+    Args:
+        atom_types: Array (112,) con tipos de átomos
+
+    Returns:
+        np.ndarray: Array con índices donde atom_types == 2 (Ti)
+
+    Examples:
+        >>> types = np.array([0, 0, 2, 1, 2, 0])
+        >>> get_Ti_indices_from_types(types)
+        array([2, 4])
+    """
+    return np.where(atom_types == 2)[0].astype(np.int32)
