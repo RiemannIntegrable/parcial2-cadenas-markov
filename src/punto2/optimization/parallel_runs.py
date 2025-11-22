@@ -268,3 +268,147 @@ def filter_top_runs(resultados: List[Dict], top_n: int = 5) -> List[Dict]:
     """
     sorted_results = sorted(resultados, key=lambda x: x['energia_final'])
     return sorted_results[:top_n]
+
+
+# ============================================================================
+# VERSIONES PARA ENFRIAMIENTO LOGARÍTMICO
+# ============================================================================
+
+def run_sa_single_logarithmic(
+    run_id: int,
+    c: float,
+    t0: int,
+    max_iterations: int,
+    morse_params_array: np.ndarray,
+    verbose: bool = False
+) -> Dict:
+    """
+    Ejecuta un run independiente de Simulated Annealing con enfriamiento LOGARÍTMICO.
+
+    Esta función es llamada por cada worker de joblib en paralelo.
+
+    Args:
+        run_id: ID del run (usado como semilla)
+        c: Constante de enfriamiento (debe ser ≥ profundidad de barreras Δ)
+        t0: Offset temporal (típicamente 2)
+        max_iterations: Número de iteraciones
+        morse_params_array: Parámetros de Morse
+        verbose: Si True, imprime progreso
+
+    Returns:
+        Dict con resultados del run (misma estructura que run_sa_single)
+    """
+    # Importar aquí para evitar problemas de imports en workers paralelos
+    from ..grid.grid_utils import crear_grid_inicial
+    from .sa_numba import simulated_annealing_logarithmic
+
+    if verbose:
+        print(f"[Run {run_id}] Iniciando (logarítmico)...")
+
+    # Crear grid inicial con semilla única para cada run
+    grid_inicial, Ti_inicial, _ = crear_grid_inicial(seed=run_id)
+
+    # Calcular energía inicial (para métricas)
+    from ..grid.energy_numba import compute_total_energy_fast
+    energia_inicial = compute_total_energy_fast(grid_inicial, morse_params_array)
+
+    # Ejecutar Simulated Annealing LOGARÍTMICO
+    grid_best, Ti_best, history = simulated_annealing_logarithmic(
+        grid_inicial,
+        Ti_inicial,
+        morse_params_array,
+        c=c,
+        t0=t0,
+        max_iterations=max_iterations,
+        seed=run_id
+    )
+
+    # Energía final
+    energia_final = history['energy_best']
+
+    # Iteración donde se encontró el mejor
+    iterations_to_best = int(np.argmin(history['energy']))
+
+    # Mejora relativa
+    mejora_relativa = (energia_inicial - energia_final) / abs(energia_inicial)
+
+    if verbose:
+        print(f"[Run {run_id}] Completado: E_inicial={energia_inicial:.4f}, "
+              f"E_final={energia_final:.4f}, mejora={mejora_relativa*100:.2f}%")
+
+    # Retornar resultados (NO guardar energy_history completo para ahorrar memoria)
+    return {
+        'run_id': run_id,
+        'grid_best': grid_best,
+        'Ti_best': Ti_best,
+        'energia_final': energia_final,
+        'energia_inicial': energia_inicial,
+        'mejora_relativa': mejora_relativa,
+        'iterations_to_best': iterations_to_best,
+        # Solo guardar un subconjunto del history para ahorrar memoria
+        'energy_history': history['energy'][::10]  # Solo cada 10 puntos
+    }
+
+
+def ejecutar_multiples_runs_logarithmic(
+    n_runs: int,
+    c: float,
+    t0: int,
+    max_iterations: int,
+    morse_params_array: np.ndarray,
+    n_jobs: int = -1,
+    verbose: int = 10
+) -> List[Dict]:
+    """
+    Ejecuta múltiples runs de Simulated Annealing con enfriamiento LOGARÍTMICO en paralelo.
+
+    Usa joblib para paralelizar la ejecución en múltiples cores.
+
+    Args:
+        n_runs: Número de runs independientes a ejecutar
+        c: Constante de enfriamiento (debe ser ≥ profundidad de barreras Δ)
+        t0: Offset temporal (típicamente 2)
+        max_iterations: Número de iteraciones por run (típicamente 10⁶-10⁹)
+        morse_params_array: Array (3, 3, 3) con parámetros de Morse
+        n_jobs: Número de jobs paralelos (-1 = todos los cores)
+        verbose: Nivel de verbosidad de joblib
+
+    Returns:
+        Lista de diccionarios con resultados de cada run
+
+    Note:
+        El enfriamiento logarítmico T(t) = c / log(t + t₀) garantiza convergencia
+        al óptimo global (Teorema de Hajek) pero requiere MUCHAS iteraciones.
+    """
+    print(f"Ejecutando {n_runs} runs de Simulated Annealing (logarítmico) en paralelo...")
+    print(f"  Parámetros: c={c}, t₀={t0}, max_iter={max_iterations:,}")
+    print(f"  Jobs paralelos: {n_jobs} ({'todos los cores' if n_jobs == -1 else f'{n_jobs} cores'})")
+    print()
+
+    # Ejecutar en paralelo usando joblib
+    resultados = Parallel(n_jobs=n_jobs, verbose=verbose)(
+        delayed(run_sa_single_logarithmic)(
+            run_id=i,
+            c=c,
+            t0=t0,
+            max_iterations=max_iterations,
+            morse_params_array=morse_params_array,
+            verbose=False
+        )
+        for i in range(n_runs)
+    )
+
+    print(f"\n✓ Completados {len(resultados)} runs")
+
+    # Estadísticas resumidas
+    energias_finales = [r['energia_final'] for r in resultados]
+    mejoras = [r['mejora_relativa'] for r in resultados]
+
+    print("\nEstadísticas:")
+    print(f"  Mejor energía: {min(energias_finales):.6f}")
+    print(f"  Peor energía: {max(energias_finales):.6f}")
+    print(f"  Media: {np.mean(energias_finales):.6f}")
+    print(f"  Desv. estándar: {np.std(energias_finales):.6f}")
+    print(f"  Mejora promedio: {np.mean(mejoras)*100:.2f}%")
+
+    return resultados

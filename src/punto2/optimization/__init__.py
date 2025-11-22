@@ -5,7 +5,12 @@ Contiene implementaciones de Simulated Annealing optimizadas con Numba
 y utilidades para ejecución paralela.
 """
 
-from .sa_numba import simulated_annealing, simulated_annealing_core
+from .sa_numba import (
+    simulated_annealing,
+    simulated_annealing_core,
+    simulated_annealing_logarithmic,
+    simulated_annealing_core_logarithmic
+)
 from .cooling_schedules import (
     geometric_cooling,
     exponential_cooling,
@@ -17,6 +22,8 @@ from .cooling_schedules import (
 __all__ = [
     'simulated_annealing',
     'simulated_annealing_core',
+    'simulated_annealing_logarithmic',
+    'simulated_annealing_core_logarithmic',
     'geometric_cooling',
     'exponential_cooling',
     'logarithmic_cooling',
