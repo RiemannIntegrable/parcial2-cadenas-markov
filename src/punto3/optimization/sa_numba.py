@@ -345,6 +345,10 @@ def simulated_annealing_logarithmic_3d(
         save_every
     )
 
+    # IMPORTANTE: Recalcular Ti_indices_best desde atom_types_best
+    # porque Ti_best del core puede tener índices desactualizados después de muchos swaps
+    Ti_indices_best = np.where(atom_types_best == 2)[0].astype(np.int32)
+
     # Preparar diccionario de historia
     history = {
         'energy': energy_hist,
@@ -354,4 +358,4 @@ def simulated_annealing_logarithmic_3d(
         'iterations_to_best': iterations_to_best
     }
 
-    return atom_types_best, Ti_best, history
+    return atom_types_best, Ti_indices_best, history

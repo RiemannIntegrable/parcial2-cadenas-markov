@@ -89,6 +89,12 @@ def run_sa_single_logarithmic_3d(
     # Mejora relativa
     mejora_relativa = (energia_inicial - energia_final) / abs(energia_inicial)
 
+    # Verificación: asegurar que Ti_indices_best tenga exactamente 8 elementos
+    assert len(Ti_indices_best) == 8, \
+        f"Error en run {run_id}: Ti_indices_best tiene {len(Ti_indices_best)} elementos, esperados 8"
+    assert np.sum(atom_types_best == 2) == 8, \
+        f"Error en run {run_id}: atom_types_best tiene {np.sum(atom_types_best == 2)} Ti, esperados 8"
+
     if verbose:
         print(f"[Run {run_id}] Completado: E_inicial={energia_inicial:.4f}, "
               f"E_final={energia_final:.4f}, mejora={mejora_relativa*100:.2f}%")
