@@ -103,8 +103,10 @@ def run_sa_single_3d(
     # Retornar resultados (incluir solo lo esencial para ahorrar memoria)
     return {
         'run_id': run_id,
-        'atom_types_best': resultado['atom_types_best'],
-        'Ti_indices_best': resultado['Ti_indices_best'],
+        'atom_types': resultado['atom_types_best'],
+        'all_positions': all_positions,
+        'Ti_indices': resultado['Ti_indices_best'],
+        'Fe_indices': resultado['Fe_indices_best'],
         'energia_final': energia_final,
         'energia_inicial': energia_inicial,
         'mejora_relativa': mejora_relativa,
@@ -244,14 +246,19 @@ def get_run_statistics(resultados: List[Dict]) -> Dict:
     Returns:
         Dict con estadísticas:
             - 'n_runs': Número de runs
-            - 'energia_min': Mejor energía encontrada
-            - 'energia_max': Peor energía encontrada
-            - 'energia_mean': Media de energías
-            - 'energia_std': Desviación estándar
-            - 'energia_median': Mediana de energías
-            - 'mejora_mean': Mejora promedio (%)
-            - 'mejora_std': Desviación estándar de mejora
+            - 'energia_final_min': Mejor energía encontrada
+            - 'energia_final_max': Peor energía encontrada
+            - 'energia_final_mean': Media de energías finales
+            - 'energia_final_std': Desviación estándar
+            - 'energia_final_median': Mediana de energías
+            - 'mejora_relativa_min': Mejora mínima (%)
+            - 'mejora_relativa_max': Mejora máxima (%)
+            - 'mejora_relativa_mean': Mejora promedio (%)
+            - 'mejora_relativa_std': Desviación estándar de mejora
+            - 'acceptance_rate_min': Tasa de aceptación mínima
+            - 'acceptance_rate_max': Tasa de aceptación máxima
             - 'acceptance_rate_mean': Tasa de aceptación promedio
+            - 'acceptance_rate_std': Desviación estándar de tasa aceptación
     """
     energias_finales = np.array([r['energia_final'] for r in resultados])
     mejoras = np.array([r['mejora_relativa'] * 100 for r in resultados])
@@ -259,13 +266,20 @@ def get_run_statistics(resultados: List[Dict]) -> Dict:
 
     return {
         'n_runs': len(resultados),
-        'energia_min': np.min(energias_finales),
-        'energia_max': np.max(energias_finales),
-        'energia_mean': np.mean(energias_finales),
-        'energia_std': np.std(energias_finales),
-        'energia_median': np.median(energias_finales),
-        'mejora_mean': np.mean(mejoras),
-        'mejora_std': np.std(mejoras),
+        # Estadísticas de energía final
+        'energia_final_min': np.min(energias_finales),
+        'energia_final_max': np.max(energias_finales),
+        'energia_final_mean': np.mean(energias_finales),
+        'energia_final_std': np.std(energias_finales),
+        'energia_final_median': np.median(energias_finales),
+        # Estadísticas de mejora relativa (%)
+        'mejora_relativa_min': np.min(mejoras),
+        'mejora_relativa_max': np.max(mejoras),
+        'mejora_relativa_mean': np.mean(mejoras),
+        'mejora_relativa_std': np.std(mejoras),
+        # Estadísticas de tasa de aceptación
+        'acceptance_rate_min': np.min(acceptance_rates),
+        'acceptance_rate_max': np.max(acceptance_rates),
         'acceptance_rate_mean': np.mean(acceptance_rates),
         'acceptance_rate_std': np.std(acceptance_rates)
     }
