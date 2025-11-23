@@ -372,9 +372,16 @@ def simulated_annealing_logarithmic_3d(
         print(f"Tasa de aceptación: {acceptance_rate:.4f} ({acceptance_rate*100:.2f}%)")
         print("=" * 80)
 
+    # Calcular Fe_indices_best basándose en Ti_best
+    # Los índices Fe son todos los candidatos (0 a N_candidates-1) que NO son Ti
+    n_candidates = len(atom_types_best) - 16  # Total - Nd = candidatos
+    all_candidate_indices = np.arange(n_candidates)
+    Fe_best = np.setdiff1d(all_candidate_indices, Ti_best)
+
     return {
         'atom_types_best': atom_types_best,
         'Ti_indices_best': Ti_best,
+        'Fe_indices_best': Fe_best,
         'energy_best': energy_best,
         'energy_initial': energy_initial,
         'energy_history': energy_history,
