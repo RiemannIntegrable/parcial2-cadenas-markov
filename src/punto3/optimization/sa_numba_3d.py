@@ -69,6 +69,8 @@ def simulated_annealing_core_logarithmic_3d(
     atom_types_current = atom_types.copy()
     Ti_current = Ti_indices.copy()
     Fe_current = Fe_indices.copy()
+    mask= ~np.isin(Fe_current, Ti_current)
+    Fe_current = Fe_current[mask]
 
     n_Ti = len(Ti_current)  # 8
     n_Fe = len(Fe_current)  # 88
@@ -149,6 +151,36 @@ def simulated_annealing_core_logarithmic_3d(
         fe_x = all_positions[fe_global_idx, 0]
         fe_y = all_positions[fe_global_idx, 1]
         fe_z = all_positions[fe_global_idx, 2]
+
+        # ====================================================================
+        # VALIDACIÓN: Verificar que el Ti no vaya a una posición ya ocupada por otro Ti
+        # ====================================================================
+        # Verificar si la posición Fe (donde queremos mover el Ti) ya está ocupada por otro Ti
+        position_conflict = False
+        for other_ti_idx in range(n_Ti):
+            if other_ti_idx == ti_idx:
+                continue  # Saltar el Ti que estamos moviendo
+
+            other_ti_global = Ti_current[other_ti_idx]
+            other_ti_x = all_positions[other_ti_global, 0]
+            other_ti_y = all_positions[other_ti_global, 1]
+            other_ti_z = all_positions[other_ti_global, 2]
+
+            # Verificar si las coordenadas coinciden (con tolerancia numérica)
+            dx = fe_x - other_ti_x
+            dy = fe_y - other_ti_y
+            dz = fe_z - other_ti_z
+            dist = np.sqrt(dx*dx + dy*dy + dz*dz)
+
+            if dist < 1e-6:  # Posiciones prácticamente idénticas
+                position_conflict = True
+                break
+
+        # Si hay conflicto de posición, rechazar este movimiento inmediatamente
+        if position_conflict:
+            energy_history[iteration] = energy_current
+            accepted_history[iteration] = False
+            continue  # Saltar al siguiente iteration
 
         # ====================================================================
         # CALCULAR ΔE INCREMENTAL (OPTIMIZACIÓN CRÍTICA)
