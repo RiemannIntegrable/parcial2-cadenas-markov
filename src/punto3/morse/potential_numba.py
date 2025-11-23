@@ -1,10 +1,9 @@
 """
-Potencial de Morse optimizado con Numba para máximo rendimiento (versión 3D).
+Potencial de Morse optimizado con Numba para interacciones atómicas 3D.
 
-Este módulo implementa el potencial de Morse usando compilación JIT con Numba,
-logrando speedups de 100-1000× en funciones críticas.
-
-La única diferencia con punto2 es que usamos distancia_3d en lugar de distancia_2d.
+Este módulo implementa el potencial de Morse usando compilación JIT con Numba.
+La fórmula de Morse es independiente de la dimensionalidad - solo depende de
+la distancia r entre átomos.
 
 Convención de índices:
     0 = Fe (Hierro)
@@ -15,6 +14,7 @@ Convención de índices:
 import numpy as np
 from numba import njit
 from typing import Dict, Tuple
+
 
 # ============================================================================
 # PARÁMETROS DEL POTENCIAL DE MORSE (Tabla 1 del problema)
@@ -74,11 +74,11 @@ def preparar_morse_params_array() -> np.ndarray:
 
 
 # ============================================================================
-# FUNCIONES OPTIMIZADAS CON NUMBA (VERSION 3D)
+# FUNCIONES OPTIMIZADAS CON NUMBA
 # ============================================================================
 
 @njit(fastmath=True, cache=True, inline='always')
-def morse_potential_fast(r: float, D0: float, alpha: float, r0: float) -> float:
+def morse_potential(r: float, D0: float, alpha: float, r0: float) -> float:
     """
     Calcula el potencial de Morse entre dos átomos.
 
@@ -88,17 +88,18 @@ def morse_potential_fast(r: float, D0: float, alpha: float, r0: float) -> float:
         U(r) = D₀[exp(-2α(r-r₀)) - 2·exp(-α(r-r₀))]
 
     Args:
-        r: Distancia entre átomos
-        D0: Profundidad del pozo de potencial
-        alpha: Parámetro de ancho del pozo
-        r0: Distancia de equilibrio
+        r: Distancia entre átomos (Angstroms)
+        D0: Profundidad del pozo de potencial (eV)
+        alpha: Parámetro de ancho del pozo (1/Å)
+        r0: Distancia de equilibrio (Å)
 
     Returns:
-        Energía del potencial de Morse
+        Energía del potencial de Morse (eV)
 
     Note:
         Esta función es inlined por el compilador Numba para máximo rendimiento.
         fastmath=True habilita optimizaciones matemáticas agresivas.
+        La fórmula es idéntica en 2D y 3D - solo cambia cómo se calcula r.
     """
     delta_r = r - r0
     exp_term = np.exp(-alpha * delta_r)
@@ -115,41 +116,16 @@ def distancia_3d(x1: float, y1: float, z1: float, x2: float, y2: float, z2: floa
     Optimizado con Numba para máximo rendimiento.
 
     Args:
-        x1, y1, z1: Coordenadas del primer punto
-        x2, y2, z2: Coordenadas del segundo punto
+        x1, y1, z1: Coordenadas del primer punto (Å)
+        x2, y2, z2: Coordenadas del segundo punto (Å)
 
     Returns:
-        Distancia euclidiana
-
-    Examples:
-        >>> d = distancia_3d(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-        >>> np.isclose(d, np.sqrt(3))
-        True
+        Distancia euclidiana (Å)
     """
     dx = x1 - x2
     dy = y1 - y2
     dz = z1 - z2
-    return np.sqrt(dx * dx + dy * dy + dz * dz)
-
-
-@njit(fastmath=True, cache=True, inline='always')
-def distancia_3d_cuadrada(x1: float, y1: float, z1: float, x2: float, y2: float, z2: float) -> float:
-    """
-    Calcula la distancia euclidiana al cuadrado (más rápido, evita sqrt).
-
-    Útil cuando solo se necesita comparar distancias.
-
-    Args:
-        x1, y1, z1: Coordenadas del primer punto
-        x2, y2, z2: Coordenadas del segundo punto
-
-    Returns:
-        Distancia euclidiana al cuadrado
-    """
-    dx = x1 - x2
-    dy = y1 - y2
-    dz = z1 - z2
-    return dx * dx + dy * dy + dz * dz
+    return np.sqrt(dx*dx + dy*dy + dz*dz)
 
 
 # ============================================================================

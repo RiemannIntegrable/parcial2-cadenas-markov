@@ -1,31 +1,23 @@
 """
-Utilidades para crear y manipular la estructura cristalina 3D.
+Utilidades para la estructura cristalina 3D de NdFe₁₂
 
-Este módulo maneja las coordenadas 3D reales de la estructura NdFe12.
-
-Convención de valores en atom_types:
-    0 = Fe (Hierro) - puede moverse (96 posiciones candidatas)
-    1 = Nd (Neodimio) - FIJO (16 átomos)
-    2 = Ti (Titanio) - sustituye a 8 Fe (lo que optimizamos)
+Este módulo provee las coordenadas atómicas reales de la estructura cristalina
+y funciones para crear configuraciones iniciales con Ti aleatorios.
 """
 
 import numpy as np
 from typing import Tuple, Optional
 
 
-def get_Nd_positions_fijas() -> np.ndarray:
+def get_Nd_positions_fixed() -> np.ndarray:
     """
-    Retorna las posiciones fijas de los 16 átomos de Nd.
+    Retorna las 16 posiciones FIJAS de átomos de Neodimio (Nd).
 
-    Estas coordenadas son extraídas del notebook punto3.ipynb.
+    Estas coordenadas fueron extraídas de la estructura cristalina real de NdFe₁₂
+    y permanecen fijas durante la optimización.
 
     Returns:
-        np.ndarray: Array de shape (16, 3) con coordenadas (x, y, z) en Ångströms
-
-    Examples:
-        >>> Nd_pos = get_Nd_positions_fijas()
-        >>> Nd_pos.shape
-        (16, 3)
+        Array (16, 3) con coordenadas (x, y, z) en Angstroms
     """
     Nd_coords_text = """8.592000 8.592000 0.000000
 0.000000 8.592000 2.404000
@@ -44,32 +36,29 @@ def get_Nd_positions_fijas() -> np.ndarray:
 0.000000 8.592000 0.000000
 8.592000 8.592000 2.404000"""
 
-    positions = np.array([list(map(float, line.split()))
-                         for line in Nd_coords_text.strip().split('\n')],
-                        dtype=np.float32)
+    Nd_positions = np.array([
+        list(map(float, line.split()))
+        for line in Nd_coords_text.strip().split('\n')
+    ], dtype=np.float32)
 
-    assert positions.shape == (16, 3), f"Esperadas 16 posiciones Nd, encontradas {positions.shape}"
+    assert Nd_positions.shape == (16, 3), f"Expected (16, 3), got {Nd_positions.shape}"
 
-    return positions
+    return Nd_positions
 
 
 def get_Fe_positions_all() -> np.ndarray:
     """
-    Retorna TODAS las posiciones candidatas de Fe (96 posiciones).
+    Retorna las 96 posiciones candidatas de átomos de Hierro (Fe).
 
-    Estas son las posiciones donde potencialmente pueden estar átomos de Fe o Ti.
+    Estas son las posiciones donde pueden ubicarse átomos de Fe o Ti.
+    El dataset original tiene 102 posiciones, pero según el enunciado del problema
+    debemos usar solo 96 sitios candidatos.
 
     Returns:
-        np.ndarray: Array de shape (96, 3) con coordenadas (x, y, z) en Ångströms
+        Array (96, 3) con coordenadas (x, y, z) en Angstroms
 
     Note:
-        El notebook original tiene 102 posiciones de Fe, pero usaremos solo 96
-        para ser consistentes con el enunciado del problema (96 sitios candidatos).
-
-    Examples:
-        >>> Fe_pos = get_Fe_positions_all()
-        >>> Fe_pos.shape
-        (96, 3)
+        Se truncan las primeras 96 posiciones del dataset completo de 102.
     """
     Fe_coords_text = """2.502960 8.592000 1.202000
 6.089040 0.000000 1.202000
@@ -166,52 +155,71 @@ def get_Fe_positions_all() -> np.ndarray:
 7.398000 11.700000 0.000000
 1.206000 7.398000 0.000000
 1.206000 5.484000 2.404000
-7.398000 5.484000 2.404000"""
+7.398000 5.484000 2.404000
+5.484000 7.398000 2.404000
+11.700000 1.206000 2.404000"""
 
-    positions = np.array([list(map(float, line.split()))
-                         for line in Fe_coords_text.strip().split('\n')],
-                        dtype=np.float32)
+    Fe_positions = np.array([
+        list(map(float, line.split()))
+        for line in Fe_coords_text.strip().split('\n')
+    ], dtype=np.float32)
 
-    # Tomar solo las primeras 96 posiciones
-    positions = positions[:96]
+    # Truncar a las primeras 96 posiciones según enunciado del problema
+    Fe_positions = Fe_positions[:96]
 
-    assert positions.shape == (96, 3), f"Esperadas 96 posiciones Fe, encontradas {positions.shape}"
+    assert Fe_positions.shape == (96, 3), f"Expected (96, 3), got {Fe_positions.shape}"
 
-    return positions
+    return Fe_positions
 
 
-def crear_configuracion_inicial(seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def get_Ti_indices_from_types(atom_types: np.ndarray) -> np.ndarray:
     """
-    Crea la configuración inicial del sistema con 8 Ti aleatorios.
+    Extrae los índices globales de los átomos de Ti desde el array atom_types.
 
-    Configuración:
-        - 16 Nd fijos (coordenadas específicas)
-        - 96 posiciones candidatas para Fe/Ti
-        - 8 Ti en posiciones aleatorias (de las 96)
-        - 88 Fe en el resto
+    Esta función es CRÍTICA para evitar el bug de pérdida de átomos de Ti.
+    Siempre usa esta función para extraer los índices de Ti después de la optimización,
+    NO confíes en el array Ti_indices retornado por el algoritmo.
 
     Args:
+        atom_types: Array (N,) con tipos de átomos [0=Fe, 1=Nd, 2=Ti]
+
+    Returns:
+        Array con índices globales donde atom_types == 2 (Ti)
+
+    Example:
+        >>> atom_types = np.array([0, 1, 2, 0, 2, 1])  # 2 Ti en posiciones 2 y 4
+        >>> get_Ti_indices_from_types(atom_types)
+        array([2, 4], dtype=int32)
+    """
+    Ti_indices = np.where(atom_types == 2)[0].astype(np.int32)
+    return Ti_indices
+
+
+def crear_configuracion_inicial_3d(
+    n_Ti: int = 8,
+    seed: Optional[int] = None
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Crea una configuración inicial aleatoria del sistema cristalino 3D.
+
+    El sistema consta de:
+    - 16 átomos de Nd (fijos)
+    - 88 átomos de Fe
+    - 8 átomos de Ti (colocados aleatoriamente en posiciones de Fe)
+
+    Args:
+        n_Ti: Número de átomos de Ti (default: 8)
         seed: Semilla para reproducibilidad (opcional)
 
     Returns:
-        Tupla (all_positions, atom_types, Ti_indices, Fe_indices, Nd_positions):
-            - all_positions: np.ndarray shape (112, 3) - TODAS las coordenadas (16 Nd + 96 Fe/Ti)
-            - atom_types: np.ndarray shape (112,) dtype=int8
-                         Valores: 0=Fe, 1=Nd, 2=Ti
-            - Ti_indices: np.ndarray shape (8,) dtype=int32
-                         Índices de los 8 átomos de Ti en all_positions
-            - Fe_indices: np.ndarray shape (88,) dtype=int32
-                         Índices de los 88 átomos de Fe en all_positions
-            - Nd_positions: np.ndarray shape (16, 3) dtype=float32
-                           Coordenadas (x, y, z) de los 16 átomos de Nd (constante)
+        Tupla (all_positions, atom_types, Ti_indices, Nd_positions) donde:
+        - all_positions: Array (112, 3) con todas las coordenadas atómicas
+        - atom_types: Array (112,) con tipos [0=Fe, 1=Nd, 2=Ti]
+        - Ti_indices: Array (8,) con índices globales de Ti
+        - Nd_positions: Array (16, 3) con posiciones fijas de Nd
 
-    Note:
-        all_positions está estructurado como:
-        - Índices 0-15: Nd (fijos)
-        - Índices 16-111: Fe/Ti (candidatos, 96 posiciones)
-
-    Examples:
-        >>> all_pos, types, Ti_idx, Fe_idx, Nd_pos = crear_configuracion_inicial(seed=42)
+    Example:
+        >>> all_pos, types, Ti_idx, Nd_pos = crear_configuracion_inicial_3d(seed=42)
         >>> all_pos.shape
         (112, 3)
         >>> np.sum(types == 2)  # Contar Ti
@@ -220,57 +228,73 @@ def crear_configuracion_inicial(seed: Optional[int] = None) -> Tuple[np.ndarray,
     if seed is not None:
         np.random.seed(seed)
 
-    # Obtener posiciones fijas
-    Nd_positions = get_Nd_positions_fijas()  # (16, 3)
-    Fe_all_positions = get_Fe_positions_all()  # (96, 3)
+    # Cargar posiciones cristalográficas
+    Nd_positions = get_Nd_positions_fixed()  # (16, 3)
+    Fe_positions = get_Fe_positions_all()    # (96, 3)
 
-    # Combinar todas las posiciones: [Nd (0-15), Fe/Ti (16-111)]
-    all_positions = np.vstack([Nd_positions, Fe_all_positions]).astype(np.float32)
+    # Seleccionar aleatoriamente n_Ti posiciones de las 96 para Ti
+    all_Fe_indices = np.arange(96)
+    Ti_local_indices = np.random.choice(all_Fe_indices, size=n_Ti, replace=False)
+    Ti_local_indices = np.sort(Ti_local_indices)  # Ordenar para facilitar debugging
 
-    # Inicializar tipos de átomo
-    atom_types = np.zeros(112, dtype=np.int8)
+    # Crear array atom_types
+    # Estructura: [Fe (88 átomos) | Nd (16 átomos) | Ti (8 átomos)]
+    # Índices:    [0..87         | 88..103        | 104..111     ]
 
-    # Asignar Nd (índices 0-15)
-    atom_types[0:16] = 1  # Nd = 1
+    Fe_mask = np.ones(96, dtype=bool)
+    Fe_mask[Ti_local_indices] = False
 
-    # Asignar Fe (índices 16-111, por ahora todo Fe)
-    atom_types[16:112] = 0  # Fe = 0
+    Fe_only_positions = Fe_positions[Fe_mask]  # (88, 3)
+    Ti_positions = Fe_positions[Ti_local_indices]  # (8, 3)
 
-    # Elegir 8 posiciones aleatorias de las 96 candidatas para Ti
-    # Los índices candidatos van de 16 a 111 (96 posiciones)
-    indices_candidatos = np.arange(16, 112)
-    Ti_indices = np.random.choice(indices_candidatos, size=8, replace=False).astype(np.int32)
+    # Construir all_positions: concatenar en orden Fe | Nd | Ti
+    all_positions = np.vstack([
+        Fe_only_positions,  # 0..87
+        Nd_positions,        # 88..103
+        Ti_positions         # 104..111
+    ]).astype(np.float32)
 
-    # Marcar como Ti
-    atom_types[Ti_indices] = 2  # Ti = 2
+    # Construir atom_types
+    atom_types = np.concatenate([
+        np.zeros(88, dtype=np.int32),   # Fe
+        np.ones(16, dtype=np.int32),    # Nd
+        np.full(8, 2, dtype=np.int32)   # Ti
+    ])
 
-    # Obtener índices de Fe (todos los candidatos que NO son Ti)
-    Fe_indices = np.array([i for i in indices_candidatos if i not in Ti_indices], dtype=np.int32)
+    # Índices globales de Ti en all_positions
+    Ti_indices = np.arange(104, 112, dtype=np.int32)  # [104, 105, ..., 111]
 
-    # Verificaciones
-    assert len(all_positions) == 112, f"Esperadas 112 posiciones totales, encontradas {len(all_positions)}"
-    assert np.sum(atom_types == 1) == 16, f"Esperados 16 Nd, encontrados {np.sum(atom_types == 1)}"
-    assert np.sum(atom_types == 2) == 8, f"Esperados 8 Ti, encontrados {np.sum(atom_types == 2)}"
-    assert np.sum(atom_types == 0) == 88, f"Esperados 88 Fe, encontrados {np.sum(atom_types == 0)}"
-    assert len(Ti_indices) == 8, f"Esperados 8 índices Ti, encontrados {len(Ti_indices)}"
-    assert len(Fe_indices) == 88, f"Esperados 88 índices Fe, encontrados {len(Fe_indices)}"
+    # Verificaciones de sanidad
+    assert all_positions.shape == (112, 3), f"all_positions shape: {all_positions.shape}"
+    assert atom_types.shape == (112,), f"atom_types shape: {atom_types.shape}"
+    assert len(Ti_indices) == n_Ti, f"Ti_indices length: {len(Ti_indices)}"
+    assert np.sum(atom_types == 0) == 88, f"Fe count: {np.sum(atom_types == 0)}"
+    assert np.sum(atom_types == 1) == 16, f"Nd count: {np.sum(atom_types == 1)}"
+    assert np.sum(atom_types == 2) == n_Ti, f"Ti count: {np.sum(atom_types == 2)}"
 
-    return all_positions, atom_types, Ti_indices, Fe_indices, Nd_positions
+    return all_positions, atom_types, Ti_indices, Nd_positions
 
 
-def get_Ti_indices_from_types(atom_types: np.ndarray) -> np.ndarray:
+def print_system_info(all_positions: np.ndarray, atom_types: np.ndarray):
     """
-    Extrae los índices de los átomos de Ti desde atom_types.
+    Imprime información útil sobre el sistema cristalino.
 
     Args:
-        atom_types: Array (112,) con tipos de átomos
-
-    Returns:
-        np.ndarray: Array con índices donde atom_types == 2 (Ti)
-
-    Examples:
-        >>> types = np.array([0, 0, 2, 1, 2, 0])
-        >>> get_Ti_indices_from_types(types)
-        array([2, 4])
+        all_positions: Array (N, 3) con posiciones
+        atom_types: Array (N,) con tipos de átomos
     """
-    return np.where(atom_types == 2)[0].astype(np.int32)
+    n_Fe = np.sum(atom_types == 0)
+    n_Nd = np.sum(atom_types == 1)
+    n_Ti = np.sum(atom_types == 2)
+
+    print("="*70)
+    print("INFORMACIÓN DEL SISTEMA CRISTALINO 3D")
+    print("="*70)
+    print(f"  Total de átomos:     {len(all_positions)}")
+    print(f"  Átomos de Fe (0):    {n_Fe}")
+    print(f"  Átomos de Nd (1):    {n_Nd} (fijos)")
+    print(f"  Átomos de Ti (2):    {n_Ti} (a optimizar)")
+    print(f"\n  Rango X: [{all_positions[:, 0].min():.3f}, {all_positions[:, 0].max():.3f}] Å")
+    print(f"  Rango Y: [{all_positions[:, 1].min():.3f}, {all_positions[:, 1].max():.3f}] Å")
+    print(f"  Rango Z: [{all_positions[:, 2].min():.3f}, {all_positions[:, 2].max():.3f}] Å")
+    print("="*70)

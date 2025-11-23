@@ -1,19 +1,16 @@
-"""Potencial de Morse optimizado con Numba."""
+"""
+Módulo morse: Potencial de Morse para interacciones atómicas
+
+Provee funciones para calcular el potencial de Morse y preparar
+los parámetros para todos los pares de tipos atómicos.
+"""
 
 from .potential_numba import (
-    preparar_morse_params_array,
-    morse_potential_fast,
-    distancia_3d,
-    distancia_3d_cuadrada,
-    get_morse_params_by_names,
-    get_morse_params_array
+    morse_potential,
+    preparar_morse_params_array
 )
 
 __all__ = [
-    'preparar_morse_params_array',
-    'morse_potential_fast',
-    'distancia_3d',
-    'distancia_3d_cuadrada',
-    'get_morse_params_by_names',
-    'get_morse_params_array'
+    'morse_potential',
+    'preparar_morse_params_array'
 ]
