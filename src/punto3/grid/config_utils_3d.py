@@ -32,67 +32,71 @@ def crear_configuracion_inicial_3d(
     Crea la configuración inicial del sistema 3D con 8 Ti aleatorios.
 
     Configuración:
-        - 96 posiciones candidatas para Fe/Ti (FIJAS en el espacio)
+        - N posiciones candidatas para Fe/Ti (FIJAS en el espacio)
         - 16 posiciones de Nd (FIJAS)
-        - 8 Ti colocados aleatoriamente en 8 de las 96 posiciones
-        - 88 Fe en las 88 posiciones restantes
+        - 8 Ti colocados aleatoriamente en 8 de las N posiciones
+        - (N-8) Fe en las posiciones restantes
 
     Args:
-        Fe_candidate_positions: Array (96, 3) con coordenadas (x, y, z) de candidatos Fe
+        Fe_candidate_positions: Array (N, 3) con coordenadas (x, y, z) de candidatos Fe
         Nd_positions: Array (16, 3) con coordenadas (x, y, z) de átomos Nd
         seed: Semilla para reproducibilidad (opcional)
 
     Returns:
         Tupla (atom_types, all_positions, Ti_indices, Fe_indices):
-            - atom_types: np.ndarray shape (112,), dtype=int8
+            - atom_types: np.ndarray shape (N+16,), dtype=int8
                          Valores: 0=Fe, 1=Nd, 2=Ti
-                         Orden: [96 candidatos Fe/Ti] + [16 Nd]
-            - all_positions: np.ndarray shape (112, 3), dtype=float64
+                         Orden: [N candidatos Fe/Ti] + [16 Nd]
+            - all_positions: np.ndarray shape (N+16, 3), dtype=float64
                             Concatenación: [Fe_candidate_positions, Nd_positions]
             - Ti_indices: np.ndarray shape (8,), dtype=int
-                         Índices (0-95) de cuáles candidatos tienen Ti
-            - Fe_indices: np.ndarray shape (88,), dtype=int
-                         Índices (0-95) de cuáles candidatos tienen Fe
+                         Índices (0 to N-1) de cuáles candidatos tienen Ti
+            - Fe_indices: np.ndarray shape (N-8,), dtype=int
+                         Índices (0 to N-1) de cuáles candidatos tienen Fe
 
     Examples:
-        >>> Fe_pos = np.random.rand(96, 3)
+        >>> Fe_pos = np.random.rand(90, 3)
         >>> Nd_pos = np.random.rand(16, 3)
         >>> atom_types, all_pos, Ti_idx, Fe_idx = crear_configuracion_inicial_3d(Fe_pos, Nd_pos, seed=42)
         >>> atom_types.shape
-        (112,)
+        (106,)
         >>> all_pos.shape
-        (112, 3)
+        (106, 3)
         >>> Ti_idx.shape
         (8,)
         >>> Fe_idx.shape
-        (88,)
+        (82,)
         >>> np.sum(atom_types == 2)  # Contar Ti
         8
         >>> np.sum(atom_types == 1)  # Contar Nd
         16
         >>> np.sum(atom_types == 0)  # Contar Fe
-        88
+        82
     """
     # Validaciones
-    assert Fe_candidate_positions.shape == (96, 3), \
-        f"Fe_candidate_positions debe ser (96, 3), recibido {Fe_candidate_positions.shape}"
+    n_candidates = len(Fe_candidate_positions)
+    assert Fe_candidate_positions.shape[1] == 3, \
+        f"Fe_candidate_positions debe tener 3 columnas (x,y,z), recibido {Fe_candidate_positions.shape}"
     assert Nd_positions.shape == (16, 3), \
         f"Nd_positions debe ser (16, 3), recibido {Nd_positions.shape}"
+    assert n_candidates >= 8, \
+        f"Debe haber al menos 8 posiciones candidatas para Ti, recibido {n_candidates}"
 
     if seed is not None:
         np.random.seed(seed)
 
-    # Seleccionar 8 índices aleatorios de los 96 candidatos para Ti
-    Ti_indices = np.random.choice(96, size=8, replace=False)
+    # Seleccionar 8 índices aleatorios de los N candidatos para Ti
+    Ti_indices = np.random.choice(n_candidates, size=8, replace=False)
     Ti_indices = np.sort(Ti_indices)  # Ordenar para consistencia
 
     # Los demás son Fe
-    all_candidate_indices = np.arange(96)
+    all_candidate_indices = np.arange(n_candidates)
     Fe_indices = np.setdiff1d(all_candidate_indices, Ti_indices)
 
     # Crear array de tipos atómicos
-    # Orden: [96 candidatos Fe/Ti] + [16 Nd]
-    atom_types = np.zeros(112, dtype=np.int8)
+    # Orden: [N candidatos Fe/Ti] + [16 Nd]
+    n_total = n_candidates + 16
+    atom_types = np.zeros(n_total, dtype=np.int8)
 
     # Marcar Ti en sus posiciones (0-95)
     atom_types[Ti_indices] = 2  # Ti = 2

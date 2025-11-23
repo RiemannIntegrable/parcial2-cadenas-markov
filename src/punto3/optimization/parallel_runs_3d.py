@@ -54,8 +54,17 @@ def run_sa_single_3d(
             - 'acceptance_rate': Tasa de aceptación
     """
     # Importar aquí para evitar problemas de imports en workers paralelos
-    from ..grid.config_utils_3d import crear_configuracion_inicial_3d
-    from .sa_numba_3d import simulated_annealing_logarithmic_3d
+    # Usar imports absolutos en lugar de relativos para compatibilidad con joblib
+    import sys
+    from pathlib import Path
+
+    # Asegurar que el path está en sys.path
+    src_path = Path(__file__).parent.parent
+    if str(src_path) not in sys.path:
+        sys.path.insert(0, str(src_path))
+
+    from grid.config_utils_3d import crear_configuracion_inicial_3d
+    from optimization.sa_numba_3d import simulated_annealing_logarithmic_3d
 
     if verbose:
         print(f"[Run {run_id}] Iniciando...")
