@@ -303,6 +303,8 @@ def simulated_annealing_logarithmic_3d(
         Dict con:
             - 'atom_types_best': Mejor configuración encontrada
             - 'Ti_indices_best': Índices de Ti en mejor configuración
+            - 'Ti_positions_best': Array (8, 3) con coordenadas 3D de las 8 partículas de Ti
+            - 'Fe_indices_best': Índices de Fe en mejor configuración
             - 'energy_best': Energía de la mejor configuración
             - 'energy_initial': Energía inicial
             - 'energy_history': Historia de energías
@@ -378,9 +380,13 @@ def simulated_annealing_logarithmic_3d(
     all_candidate_indices = np.arange(n_candidates)
     Fe_best = np.setdiff1d(all_candidate_indices, Ti_best)
 
+    # Extraer las coordenadas 3D de las 8 partículas de Titanio
+    Ti_positions_best = all_positions[Ti_best]
+
     return {
         'atom_types_best': atom_types_best,
         'Ti_indices_best': Ti_best,
+        'Ti_positions_best': Ti_positions_best,
         'Fe_indices_best': Fe_best,
         'energy_best': energy_best,
         'energy_initial': energy_initial,

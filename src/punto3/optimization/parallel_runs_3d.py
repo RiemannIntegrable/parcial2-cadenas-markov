@@ -46,6 +46,8 @@ def run_sa_single_3d(
             - 'run_id': ID del run
             - 'atom_types_best': Mejor configuración encontrada
             - 'Ti_indices_best': Índices de Ti en mejor configuración
+            - 'Ti_positions': Array (8, 3) con coordenadas 3D de las 8 partículas de Ti
+            - 'Fe_indices_best': Índices de Fe en mejor configuración
             - 'energia_final': Energía mínima alcanzada
             - 'energia_inicial': Energía inicial
             - 'mejora_relativa': (E_inicial - E_final) / |E_inicial|
@@ -106,6 +108,7 @@ def run_sa_single_3d(
         'atom_types': resultado['atom_types_best'],
         'all_positions': all_positions,
         'Ti_indices': resultado['Ti_indices_best'],
+        'Ti_positions': resultado['Ti_positions_best'],
         'Fe_indices': resultado['Fe_indices_best'],
         'energia_final': energia_final,
         'energia_inicial': energia_inicial,
