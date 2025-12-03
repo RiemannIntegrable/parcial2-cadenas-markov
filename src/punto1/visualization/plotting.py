@@ -84,19 +84,24 @@ def plot_grid_configuration(
             ax.text(x + 0.3, y + 0.3, str(i), fontsize=8,
                     bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7))
 
-    # Configuración de la grilla
-    ax.set_xlim(-0.5, grid.size[1] - 0.5)
-    ax.set_ylim(-0.5, grid.size[0] - 0.5)
+    # Configuración de la grilla usando coordenadas físicas (Angstroms)
+    # Espaciado de 2.8 Å entre átomos adyacentes
+    GRID_SPACING = 2.8
+    max_coord = (grid.size[1] - 1) * GRID_SPACING
+
+    ax.set_xlim(-0.5 * GRID_SPACING, max_coord + 0.5 * GRID_SPACING)
+    ax.set_ylim(-0.5 * GRID_SPACING, max_coord + 0.5 * GRID_SPACING)
     ax.set_aspect('equal')
 
-    # Grilla de fondo
+    # Grilla de fondo con ticks en coordenadas físicas
     ax.grid(True, alpha=0.3, linestyle='--')
-    ax.set_xticks(range(grid.size[1]))
-    ax.set_yticks(range(grid.size[0]))
+    ticks = [i * GRID_SPACING for i in range(grid.size[1])]
+    ax.set_xticks(ticks)
+    ax.set_yticks(ticks)
 
     # Etiquetas
-    ax.set_xlabel('x', fontsize=12)
-    ax.set_ylabel('y', fontsize=12)
+    ax.set_xlabel('x (Å)', fontsize=12)
+    ax.set_ylabel('y (Å)', fontsize=12)
     ax.set_title(title, fontsize=14, fontweight='bold')
 
     # Leyenda única (eliminar duplicados)

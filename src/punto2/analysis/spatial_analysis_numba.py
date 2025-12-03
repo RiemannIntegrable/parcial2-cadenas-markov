@@ -7,11 +7,17 @@ preguntas del Punto 3:
 1. ¿Dónde se ubican los Ti?
 2. ¿Se agrupan o dispersan?
 3. ¿Confirma la hipótesis del Punto 1?
+
+IMPORTANTE: Las posiciones están en coordenadas físicas (Angstroms) con
+espaciado de 2.8 Å entre átomos adyacentes.
 """
 
 import numpy as np
 from numba import njit
 from typing import Dict, Tuple
+
+# Constante de espaciado de la grilla (Angstroms)
+GRID_SPACING = 2.8
 
 
 @njit(fastmath=True, cache=True)
@@ -110,8 +116,8 @@ def calcular_clustering_score(Ti_positions: np.ndarray, grid_size: int = 10) -> 
     - Si los Ti están dispersos → score bajo (cercano a 0)
 
     Args:
-        Ti_positions: Array (8, 2) con posiciones de Ti
-        grid_size: Tamaño de la grilla (default: 10)
+        Ti_positions: Array (8, 2) con posiciones de Ti en Angstroms
+        grid_size: Tamaño de la grilla en índices (default: 10)
 
     Returns:
         Score de clustering en [0, 1]
@@ -122,11 +128,11 @@ def calcular_clustering_score(Ti_positions: np.ndarray, grid_size: int = 10) -> 
         Este es un score simplificado. Valores bajos sugieren dispersión.
 
     Examples:
-        >>> # Ti muy dispersos
-        >>> Ti_dispersos = np.array([[0,0], [9,9], [0,9], [9,0], [5,5], [2,2], [7,7], [1,8]])
+        >>> # Ti muy dispersos (coordenadas en Angstroms)
+        >>> Ti_dispersos = np.array([[0,0], [25.2,25.2], [0,25.2], [25.2,0], [14,14], [5.6,5.6], [19.6,19.6], [2.8,22.4]])
         >>> score_disp = calcular_clustering_score(Ti_dispersos)
         >>> # Ti agrupados
-        >>> Ti_agrupados = np.array([[0,0], [0,1], [1,0], [1,1], [2,0], [0,2], [2,1], [1,2]])
+        >>> Ti_agrupados = np.array([[0,0], [0,2.8], [2.8,0], [2.8,2.8], [5.6,0], [0,5.6], [5.6,2.8], [2.8,5.6]])
         >>> score_agrup = calcular_clustering_score(Ti_agrupados)
         >>> score_agrup > score_disp
         True
@@ -136,8 +142,8 @@ def calcular_clustering_score(Ti_positions: np.ndarray, grid_size: int = 10) -> 
     # Distancia promedio entre Ti
     dist_promedio = np.mean(distancias_Ti_Ti)
 
-    # Distancia máxima posible en la grilla (diagonal)
-    dist_maxima = np.sqrt(2.0) * (grid_size - 1)
+    # Distancia máxima posible en la grilla (diagonal) en Angstroms
+    dist_maxima = np.sqrt(2.0) * (grid_size - 1) * GRID_SPACING
 
     # Distancia mínima esperada si están dispersos (aproximación)
     # Si los 8 Ti se distribuyen uniformemente en una grilla 10×10
@@ -159,26 +165,28 @@ def calcular_clustering_score(Ti_positions: np.ndarray, grid_size: int = 10) -> 
 @njit(fastmath=True, cache=True)
 def calcular_distancia_al_centro(Ti_positions: np.ndarray, grid_size: int = 10) -> np.ndarray:
     """
-    Calcula la distancia de cada Ti al centro de la grilla.
+    Calcula la distancia de cada Ti al centro de la grilla en Angstroms.
 
-    El centro del núcleo Nd está en (4.5, 4.5).
+    El centro del núcleo Nd está en coordenadas físicas ((grid_size-1)/2 * GRID_SPACING) Å.
+    Para grid_size=10 y GRID_SPACING=2.8: centro = (4.5 * 2.8, 4.5 * 2.8) = (12.6, 12.6) Å
 
     Args:
-        Ti_positions: Array (8, 2) con posiciones de Ti
-        grid_size: Tamaño de la grilla
+        Ti_positions: Array (8, 2) con posiciones de Ti en Angstroms
+        grid_size: Tamaño de la grilla en índices (default: 10)
 
     Returns:
-        Array (8,) con distancia de cada Ti al centro
+        Array (8,) con distancia de cada Ti al centro en Angstroms
 
     Examples:
-        >>> Ti_pos = np.array([[0, 0], [9, 9]], dtype=np.int8)
+        >>> Ti_pos = np.array([[0.0, 0.0], [25.2, 25.2]], dtype=np.float32)
         >>> dists = calcular_distancia_al_centro(Ti_pos)
-        >>> dists[0]  # Ti en (0,0) está más lejos que centro
-        6.36...
+        >>> dists[0]  # Ti en (0,0) está más lejos del centro que Ti en (25.2, 25.2)
+        17.8...
     """
     n_Ti = len(Ti_positions)
-    centro_x = (grid_size - 1) / 2.0
-    centro_y = (grid_size - 1) / 2.0
+    # Centro en coordenadas físicas (Angstroms)
+    centro_x = (grid_size - 1) / 2.0 * GRID_SPACING
+    centro_y = (grid_size - 1) / 2.0 * GRID_SPACING
 
     distancias = np.zeros(n_Ti, dtype=np.float64)
 
@@ -325,7 +333,10 @@ def interpretar_patron(patron: Dict[str, float]) -> str:
     dist_Ti_Nd = patron['dist_Ti_Nd_promedio']
     dist_centro = patron['dist_centro_promedio']
 
-    if dist_Ti_Nd > 4.0:
+    # Umbrales actualizados para coordenadas en Angstroms (espaciado 2.8 Å)
+    # 4.0 unidades de grilla → 11.2 Å
+    # 5.0 unidades de grilla → 14.0 Å
+    if dist_Ti_Nd > 11.2:
         interpretacion.append(
             f"Los átomos de Ti tienden a ALEJARSE de los átomos de Nd "
             f"(distancia promedio: {dist_Ti_Nd:.2f} Å)."
@@ -336,7 +347,7 @@ def interpretar_patron(patron: Dict[str, float]) -> str:
             f"(distancia promedio: {dist_Ti_Nd:.2f} Å)."
         )
 
-    if dist_centro > 5.0:
+    if dist_centro > 14.0:
         interpretacion.append(
             f"Los Ti se concentran en la PERIFERIA de la grilla "
             f"(distancia al centro: {dist_centro:.2f})."
@@ -368,7 +379,8 @@ def interpretar_patron(patron: Dict[str, float]) -> str:
         )
 
     # Pregunta 3: ¿Confirma hipótesis?
-    if dist_Ti_Nd > 4.0 and clustering < 0.5:
+    # Umbral actualizado: 4.0 unidades de grilla → 11.2 Å
+    if dist_Ti_Nd > 11.2 and clustering < 0.5:
         interpretacion.append(
             "\n✓ Este patrón CONFIRMA la hipótesis del Punto 1: "
             "los átomos de Ti prefieren sitios alejados de los átomos de R (Nd), "

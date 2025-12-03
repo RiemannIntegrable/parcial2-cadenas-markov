@@ -7,10 +7,16 @@ Este módulo contiene las funciones críticas para calcular la energía del sist
 
 La función compute_delta_E_swap_fast es la clave del éxito del algoritmo,
 logrando un speedup de 25× sin Numba y hasta 1000× con Numba.
+
+IMPORTANTE: El espaciado de la grilla es de 2.8 Angstroms entre átomos adyacentes.
 """
 
 import numpy as np
 from numba import njit
+
+# Constante de espaciado de la grilla (Angstroms)
+# Distancia física entre átomos adyacentes en la grilla
+GRID_SPACING = 2.8
 
 
 @njit(fastmath=True, cache=True)
@@ -65,9 +71,10 @@ def compute_total_energy_fast(grid_array: np.ndarray, morse_params_array: np.nda
                 for j2 in range(start_j2, 10):
                     atom2 = grid_array[i2, j2]
 
-                    # Distancia euclidiana 2D
-                    dx = float(i1 - i2)
-                    dy = float(j1 - j2)
+                    # Distancia euclidiana 2D en Angstroms
+                    # Multiplicar por GRID_SPACING para convertir de índices a coordenadas físicas
+                    dx = float(i1 - i2) * GRID_SPACING
+                    dy = float(j1 - j2) * GRID_SPACING
                     r = np.sqrt(dx * dx + dy * dy)
 
                     # Parámetros de Morse para este par
@@ -164,8 +171,8 @@ def compute_delta_E_swap_fast(
             # ================================================================
 
             # --- Ti en posición antigua interactuando con atom_other ---
-            dx_old_Ti = float(ti_pos_x - i)
-            dy_old_Ti = float(ti_pos_y - j)
+            dx_old_Ti = float(ti_pos_x - i) * GRID_SPACING
+            dy_old_Ti = float(ti_pos_y - j) * GRID_SPACING
             r_old_Ti = np.sqrt(dx_old_Ti * dx_old_Ti + dy_old_Ti * dy_old_Ti)
 
             # Parámetros Morse para Ti-atom_other
@@ -180,8 +187,8 @@ def compute_delta_E_swap_fast(
             U_old_Ti = D0_Ti * (exp2_term - 2.0 * exp_term)
 
             # --- Fe en posición antigua interactuando con atom_other ---
-            dx_old_Fe = float(fe_pos_x - i)
-            dy_old_Fe = float(fe_pos_y - j)
+            dx_old_Fe = float(fe_pos_x - i) * GRID_SPACING
+            dy_old_Fe = float(fe_pos_y - j) * GRID_SPACING
             r_old_Fe = np.sqrt(dx_old_Fe * dx_old_Fe + dy_old_Fe * dy_old_Fe)
 
             # Parámetros Morse para Fe-atom_other
@@ -200,8 +207,8 @@ def compute_delta_E_swap_fast(
             # ================================================================
 
             # --- Ti en nueva posición (fe_pos) interactuando con atom_other ---
-            dx_new_Ti = float(fe_pos_x - i)
-            dy_new_Ti = float(fe_pos_y - j)
+            dx_new_Ti = float(fe_pos_x - i) * GRID_SPACING
+            dy_new_Ti = float(fe_pos_y - j) * GRID_SPACING
             r_new_Ti = np.sqrt(dx_new_Ti * dx_new_Ti + dy_new_Ti * dy_new_Ti)
 
             # Potencial de Morse (mismos parámetros D0_Ti, alpha_Ti, r0_Ti)
@@ -211,8 +218,8 @@ def compute_delta_E_swap_fast(
             U_new_Ti = D0_Ti * (exp2_term - 2.0 * exp_term)
 
             # --- Fe en nueva posición (ti_pos) interactuando con atom_other ---
-            dx_new_Fe = float(ti_pos_x - i)
-            dy_new_Fe = float(ti_pos_y - j)
+            dx_new_Fe = float(ti_pos_x - i) * GRID_SPACING
+            dy_new_Fe = float(ti_pos_y - j) * GRID_SPACING
             r_new_Fe = np.sqrt(dx_new_Fe * dx_new_Fe + dy_new_Fe * dy_new_Fe)
 
             # Potencial de Morse (mismos parámetros D0_Fe, alpha_Fe, r0_Fe)

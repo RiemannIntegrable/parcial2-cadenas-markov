@@ -107,8 +107,9 @@ def create_grid_4x4() -> Grid2D:
     Crea la grilla 2D de 4×4 según la Figura 1 del problema.
 
     La grilla tiene:
-        - 4 átomos de R (Neodimio) en el centro: posiciones (1,1), (2,1), (1,2), (2,2)
+        - 4 átomos de R (Neodimio) en el centro: posiciones (2.8,2.8), (5.6,2.8), (2.8,5.6), (5.6,5.6) Å
         - 12 átomos de Fe en el resto de posiciones
+        - Espaciado entre átomos adyacentes: 2.8 Å
 
     Returns:
         Objeto Grid2D inicializado
@@ -122,25 +123,30 @@ def create_grid_4x4() -> Grid2D:
         >>> grid.size
         (4, 4)
     """
+    # Constante de espaciado de la grilla (Angstroms)
+    GRID_SPACING = 2.8
+
     # Posiciones de Neodimio (R) en el centro 2×2
+    # Originalmente en (1,1), (2,1), (1,2), (2,2) → multiplicar por 2.8
     R_positions = np.array([
-        [1.0, 1.0],
-        [2.0, 1.0],
-        [1.0, 2.0],
-        [2.0, 2.0]
+        [1.0 * GRID_SPACING, 1.0 * GRID_SPACING],
+        [2.0 * GRID_SPACING, 1.0 * GRID_SPACING],
+        [1.0 * GRID_SPACING, 2.0 * GRID_SPACING],
+        [2.0 * GRID_SPACING, 2.0 * GRID_SPACING]
     ])
 
     # Posiciones de Fe: todas excepto las de R
     Fe_positions = []
     for x in range(4):
         for y in range(4):
-            # Verificar si es una posición de R
+            # Verificar si es una posición de R (comparar índices, no coordenadas)
             is_R = any(
-                (x == int(r_pos[0]) and y == int(r_pos[1]))
+                (x == int(r_pos[0] / GRID_SPACING) and y == int(r_pos[1] / GRID_SPACING))
                 for r_pos in R_positions
             )
             if not is_R:
-                Fe_positions.append([float(x), float(y)])
+                # Convertir índices a coordenadas físicas (Angstroms)
+                Fe_positions.append([float(x) * GRID_SPACING, float(y) * GRID_SPACING])
 
     Fe_positions = np.array(Fe_positions)
 
@@ -154,9 +160,9 @@ def create_grid_4x4() -> Grid2D:
     return grid
 
 
-def get_Fe_positions_with_coords(grid: Grid2D) -> Dict[int, Tuple[int, int]]:
+def get_Fe_positions_with_coords(grid: Grid2D) -> Dict[int, Tuple[float, float]]:
     """
-    Retorna un diccionario mapeando índices de Fe a sus coordenadas (x, y).
+    Retorna un diccionario mapeando índices de Fe a sus coordenadas (x, y) en Angstroms.
 
     Útil para análisis e interpretación de resultados.
 
@@ -164,7 +170,7 @@ def get_Fe_positions_with_coords(grid: Grid2D) -> Dict[int, Tuple[int, int]]:
         grid: Grilla 2D
 
     Returns:
-        Dict {índice: (x, y)}
+        Dict {índice: (x, y)} donde x, y son coordenadas en Angstroms
 
     Examples:
         >>> grid = create_grid_4x4()
@@ -173,6 +179,6 @@ def get_Fe_positions_with_coords(grid: Grid2D) -> Dict[int, Tuple[int, int]]:
         12
     """
     return {
-        i: (int(pos[0]), int(pos[1]))
+        i: (float(pos[0]), float(pos[1]))
         for i, pos in enumerate(grid.Fe_positions)
     }

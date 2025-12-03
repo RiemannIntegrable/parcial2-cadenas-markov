@@ -15,26 +15,31 @@ from typing import Tuple, Optional
 
 def get_Nd_positions_fijas() -> np.ndarray:
     """
-    Retorna las posiciones fijas del núcleo de Nd (4×4 central).
+    Retorna las posiciones fijas del núcleo de Nd (4×4 central) en Angstroms.
 
-    El núcleo está en posiciones (x,y) donde x,y ∈ {3, 4, 5, 6}.
+    El núcleo está en posiciones (x,y) donde x,y ∈ {8.4, 11.2, 14.0, 16.8} Å
+    (índices 3, 4, 5, 6 con espaciado de 2.8 Å).
 
     Returns:
-        np.ndarray: Array de shape (16, 2) con coordenadas (x, y) de los 16 Nd
+        np.ndarray: Array de shape (16, 2) con coordenadas (x, y) en Angstroms
 
     Examples:
         >>> Nd_pos = get_Nd_positions_fijas()
         >>> Nd_pos.shape
         (16, 2)
-        >>> Nd_pos[0]
-        array([3, 3])
+        >>> Nd_pos[0]  # doctest: +ELLIPSIS
+        array([8.4, 8.4])
     """
+    # Constante de espaciado de la grilla (Angstroms)
+    GRID_SPACING = 2.8
+
     positions = []
     for x in [3, 4, 5, 6]:
         for y in [3, 4, 5, 6]:
-            positions.append([x, y])
+            # Convertir índices a coordenadas físicas (Angstroms)
+            positions.append([x * GRID_SPACING, y * GRID_SPACING])
 
-    return np.array(positions, dtype=np.int8)
+    return np.array(positions, dtype=np.float32)
 
 
 def crear_grid_inicial(seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -42,10 +47,11 @@ def crear_grid_inicial(seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarr
     Crea la configuración inicial del sistema con 8 Ti aleatorios.
 
     Configuración:
-        - Grilla 10×10
+        - Grilla 10×10 (índices discretos para grid_array)
         - 16 Nd fijos en núcleo 4×4 central (x,y ∈ {3,4,5,6})
         - 8 Ti en posiciones aleatorias (fuera del núcleo)
         - 76 Fe en el resto
+        - Posiciones Ti/Nd retornadas en coordenadas físicas (Angstroms)
 
     Args:
         seed: Semilla para reproducibilidad (opcional)
@@ -54,10 +60,10 @@ def crear_grid_inicial(seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarr
         Tupla (grid_array, Ti_positions, Nd_positions):
             - grid_array: np.ndarray shape (10, 10), dtype=int8
                           Valores: 0=Fe, 1=Nd, 2=Ti
-            - Ti_positions: np.ndarray shape (8, 2), dtype=int8
-                           Coordenadas (x, y) de los 8 átomos de Ti
-            - Nd_positions: np.ndarray shape (16, 2), dtype=int8
-                           Coordenadas (x, y) de los 16 átomos de Nd (constante)
+            - Ti_positions: np.ndarray shape (8, 2), dtype=float32
+                           Coordenadas (x, y) en Angstroms de los 8 átomos de Ti
+            - Nd_positions: np.ndarray shape (16, 2), dtype=float32
+                           Coordenadas (x, y) en Angstroms de los 16 átomos de Nd
 
     Examples:
         >>> grid, Ti_pos, Nd_pos = crear_grid_inicial(seed=42)
@@ -68,18 +74,24 @@ def crear_grid_inicial(seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarr
         >>> np.sum(grid == 2)  # Contar Ti
         8
     """
+    # Constante de espaciado de la grilla (Angstroms)
+    GRID_SPACING = 2.8
+
     if seed is not None:
         np.random.seed(seed)
 
     # Inicializar grilla con Fe (0)
     grid_array = np.zeros((10, 10), dtype=np.int8)
 
-    # Posiciones fijas de Nd (núcleo 4×4 central)
+    # Posiciones fijas de Nd (núcleo 4×4 central) - ya en Angstroms
     Nd_positions = get_Nd_positions_fijas()
 
-    # Colocar Nd en la grilla
-    for x, y in Nd_positions:
-        grid_array[x, y] = 1  # Nd = 1
+    # Colocar Nd en la grilla (convertir de Angstroms a índices)
+    for x_ang, y_ang in Nd_positions:
+        # Usar round para evitar problemas de precisión de punto flotante
+        x_idx = int(np.round(x_ang / GRID_SPACING))
+        y_idx = int(np.round(y_ang / GRID_SPACING))
+        grid_array[x_idx, y_idx] = 1  # Nd = 1
 
     # Obtener posiciones disponibles (donde hay Fe, fuera del núcleo)
     posiciones_disponibles = []
@@ -94,11 +106,14 @@ def crear_grid_inicial(seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarr
 
     # Elegir 8 posiciones aleatorias para Ti
     indices_Ti = np.random.choice(len(posiciones_disponibles), size=8, replace=False)
-    Ti_positions = np.array([posiciones_disponibles[i] for i in indices_Ti], dtype=np.int8)
+    Ti_positions_idx = np.array([posiciones_disponibles[i] for i in indices_Ti], dtype=np.int8)
 
     # Colocar Ti en la grilla
-    for x, y in Ti_positions:
+    for x, y in Ti_positions_idx:
         grid_array[x, y] = 2  # Ti = 2
+
+    # Convertir posiciones de Ti de índices a coordenadas físicas (Angstroms)
+    Ti_positions = Ti_positions_idx.astype(np.float32) * GRID_SPACING
 
     # Verificaciones
     assert np.sum(grid_array == 0) == 76, f"Esperados 76 Fe, encontrados {np.sum(grid_array == 0)}"
@@ -131,13 +146,13 @@ def get_Ti_positions(grid_array: np.ndarray) -> np.ndarray:
 
 def get_Fe_positions(grid_array: np.ndarray) -> np.ndarray:
     """
-    Extrae las posiciones de los átomos de Fe de la grilla.
+    Extrae las posiciones de los átomos de Fe de la grilla en coordenadas físicas (Angstroms).
 
     Args:
         grid_array: Array (10, 10) con valores 0=Fe, 1=Nd, 2=Ti
 
     Returns:
-        np.ndarray: Array shape (n_Fe, 2) con coordenadas (x, y) de Fe
+        np.ndarray: Array shape (n_Fe, 2) con coordenadas (x, y) de Fe en Angstroms
 
     Examples:
         >>> grid = np.ones((10, 10), dtype=np.int8)  # Todo Nd
@@ -145,8 +160,19 @@ def get_Fe_positions(grid_array: np.ndarray) -> np.ndarray:
         >>> Fe_pos = get_Fe_positions(grid)
         >>> Fe_pos.shape
         (1, 2)
+        >>> Fe_pos[0]  # Coordenadas en Angstroms
+        array([0., 0.], dtype=float32)
     """
-    return np.argwhere(grid_array == 0).astype(np.int8)
+    # Constante de espaciado de la grilla (Angstroms)
+    GRID_SPACING = 2.8
+
+    # Obtener índices de Fe
+    indices_Fe = np.argwhere(grid_array == 0)
+
+    # Convertir índices a coordenadas físicas (Angstroms)
+    Fe_positions = indices_Fe.astype(np.float32) * GRID_SPACING
+
+    return Fe_positions
 
 
 def aplicar_swap(

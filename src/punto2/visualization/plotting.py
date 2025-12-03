@@ -78,9 +78,16 @@ def plot_grid_configuration(
 
     # Destacar posiciones de Ti si se proporciona
     if Ti_positions is not None:
-        for idx, (x, y) in enumerate(Ti_positions):
-            # Círculo exterior para Ti
-            circle_outer = plt.Circle((y, x), 0.45, fill=False, edgecolor='red',
+        # IMPORTANTE: Ti_positions está en coordenadas físicas (Angstroms)
+        # Convertir a índices de grilla para visualización
+        GRID_SPACING = 2.8
+        for idx in range(len(Ti_positions)):
+            # Convertir de Angstroms a índices
+            x_idx = int(np.round(Ti_positions[idx, 0] / GRID_SPACING))
+            y_idx = int(np.round(Ti_positions[idx, 1] / GRID_SPACING))
+
+            # Círculo exterior para Ti (usar índices para la grilla)
+            circle_outer = plt.Circle((y_idx, x_idx), 0.45, fill=False, edgecolor='red',
                                      linewidth=2, linestyle=':', zorder=1)
             ax.add_patch(circle_outer)
 

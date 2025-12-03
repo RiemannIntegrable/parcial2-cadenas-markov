@@ -22,6 +22,10 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# Constante de espaciado de la grilla (Angstroms)
+# Necesario para convertir entre coordenadas físicas (Angstroms) e índices de grilla
+GRID_SPACING = 2.8
+
 
 @njit(fastmath=True)
 def simulated_annealing_core(
@@ -93,8 +97,9 @@ def simulated_annealing_core(
                     start_j2 = 0
                 for j2 in range(start_j2, 10):
                     atom2 = grid_current[i2, j2]
-                    dx = float(i1 - i2)
-                    dy = float(j1 - j2)
+                    # Distancias en Angstroms
+                    dx = float(i1 - i2) * GRID_SPACING
+                    dy = float(j1 - j2) * GRID_SPACING
                     r = np.sqrt(dx * dx + dy * dy)
                     D0 = morse_params_array[atom1, atom2, 0]
                     alpha_param = morse_params_array[atom1, atom2, 1]
@@ -129,10 +134,17 @@ def simulated_annealing_core(
         ti_idx = np.random.randint(0, 8)
         fe_idx = np.random.randint(0, n_Fe)
 
-        ti_x = Ti_current[ti_idx, 0]
-        ti_y = Ti_current[ti_idx, 1]
-        fe_x = Fe_current[fe_idx, 0]
-        fe_y = Fe_current[fe_idx, 1]
+        # Extraer coordenadas en Angstroms
+        ti_x_ang = Ti_current[ti_idx, 0]
+        ti_y_ang = Ti_current[ti_idx, 1]
+        fe_x_ang = Fe_current[fe_idx, 0]
+        fe_y_ang = Fe_current[fe_idx, 1]
+
+        # Convertir a índices de grilla (0-9)
+        ti_x = int(np.round(ti_x_ang / GRID_SPACING))
+        ti_y = int(np.round(ti_y_ang / GRID_SPACING))
+        fe_x = int(np.round(fe_x_ang / GRID_SPACING))
+        fe_y = int(np.round(fe_y_ang / GRID_SPACING))
 
         # ====================================================================
         # CALCULAR ΔE INCREMENTAL (OPTIMIZACIÓN CRÍTICA)
@@ -149,9 +161,9 @@ def simulated_annealing_core(
 
                 atom_other = grid_current[i, j]
 
-                # Energía que perdemos
-                dx_old_Ti = float(ti_x - i)
-                dy_old_Ti = float(ti_y - j)
+                # Energía que perdemos (distancias en Angstroms)
+                dx_old_Ti = float(ti_x - i) * GRID_SPACING
+                dy_old_Ti = float(ti_y - j) * GRID_SPACING
                 r_old_Ti = np.sqrt(dx_old_Ti * dx_old_Ti + dy_old_Ti * dy_old_Ti)
                 D0_Ti = morse_params_array[2, atom_other, 0]
                 alpha_Ti = morse_params_array[2, atom_other, 1]
@@ -161,8 +173,8 @@ def simulated_annealing_core(
                 exp2_term = exp_term * exp_term
                 U_old_Ti = D0_Ti * (exp2_term - 2.0 * exp_term)
 
-                dx_old_Fe = float(fe_x - i)
-                dy_old_Fe = float(fe_y - j)
+                dx_old_Fe = float(fe_x - i) * GRID_SPACING
+                dy_old_Fe = float(fe_y - j) * GRID_SPACING
                 r_old_Fe = np.sqrt(dx_old_Fe * dx_old_Fe + dy_old_Fe * dy_old_Fe)
                 D0_Fe = morse_params_array[0, atom_other, 0]
                 alpha_Fe = morse_params_array[0, atom_other, 1]
@@ -172,17 +184,17 @@ def simulated_annealing_core(
                 exp2_term = exp_term * exp_term
                 U_old_Fe = D0_Fe * (exp2_term - 2.0 * exp_term)
 
-                # Energía que ganamos
-                dx_new_Ti = float(fe_x - i)
-                dy_new_Ti = float(fe_y - j)
+                # Energía que ganamos (distancias en Angstroms)
+                dx_new_Ti = float(fe_x - i) * GRID_SPACING
+                dy_new_Ti = float(fe_y - j) * GRID_SPACING
                 r_new_Ti = np.sqrt(dx_new_Ti * dx_new_Ti + dy_new_Ti * dy_new_Ti)
                 delta_r = r_new_Ti - r0_Ti
                 exp_term = np.exp(-alpha_Ti * delta_r)
                 exp2_term = exp_term * exp_term
                 U_new_Ti = D0_Ti * (exp2_term - 2.0 * exp_term)
 
-                dx_new_Fe = float(ti_x - i)
-                dy_new_Fe = float(ti_y - j)
+                dx_new_Fe = float(ti_x - i) * GRID_SPACING
+                dy_new_Fe = float(ti_y - j) * GRID_SPACING
                 r_new_Fe = np.sqrt(dx_new_Fe * dx_new_Fe + dy_new_Fe * dy_new_Fe)
                 delta_r = r_new_Fe - r0_Fe
                 exp_term = np.exp(-alpha_Fe * delta_r)
@@ -209,15 +221,15 @@ def simulated_annealing_core(
         # APLICAR MOVIMIENTO SI SE ACEPTA
         # ====================================================================
         if accept:
-            # Swap en la grilla
+            # Swap en la grilla (usar índices)
             grid_current[ti_x, ti_y] = 0  # Fe
             grid_current[fe_x, fe_y] = 2  # Ti
 
-            # Actualizar arrays de posiciones
-            Ti_current[ti_idx, 0] = fe_x
-            Ti_current[ti_idx, 1] = fe_y
-            Fe_current[fe_idx, 0] = ti_x
-            Fe_current[fe_idx, 1] = ti_y
+            # Actualizar arrays de posiciones (usar coordenadas en Angstroms)
+            Ti_current[ti_idx, 0] = fe_x_ang
+            Ti_current[ti_idx, 1] = fe_y_ang
+            Fe_current[fe_idx, 0] = ti_x_ang
+            Fe_current[fe_idx, 1] = ti_y_ang
 
             # Actualizar energía (incremental)
             energy_current += delta_E
@@ -310,8 +322,9 @@ def simulated_annealing_core_logarithmic(
                     start_j2 = 0
                 for j2 in range(start_j2, 10):
                     atom2 = grid_current[i2, j2]
-                    dx = float(i1 - i2)
-                    dy = float(j1 - j2)
+                    # Distancias en Angstroms
+                    dx = float(i1 - i2) * GRID_SPACING
+                    dy = float(j1 - j2) * GRID_SPACING
                     r = np.sqrt(dx * dx + dy * dy)
                     D0 = morse_params_array[atom1, atom2, 0]
                     alpha_param = morse_params_array[atom1, atom2, 1]
@@ -351,10 +364,17 @@ def simulated_annealing_core_logarithmic(
         ti_idx = np.random.randint(0, 8)
         fe_idx = np.random.randint(0, n_Fe)
 
-        ti_x = Ti_current[ti_idx, 0]
-        ti_y = Ti_current[ti_idx, 1]
-        fe_x = Fe_current[fe_idx, 0]
-        fe_y = Fe_current[fe_idx, 1]
+        # Extraer coordenadas en Angstroms
+        ti_x_ang = Ti_current[ti_idx, 0]
+        ti_y_ang = Ti_current[ti_idx, 1]
+        fe_x_ang = Fe_current[fe_idx, 0]
+        fe_y_ang = Fe_current[fe_idx, 1]
+
+        # Convertir a índices de grilla (0-9)
+        ti_x = int(np.round(ti_x_ang / GRID_SPACING))
+        ti_y = int(np.round(ti_y_ang / GRID_SPACING))
+        fe_x = int(np.round(fe_x_ang / GRID_SPACING))
+        fe_y = int(np.round(fe_y_ang / GRID_SPACING))
 
         # ====================================================================
         # CALCULAR ΔE INCREMENTAL (OPTIMIZACIÓN CRÍTICA)
@@ -370,9 +390,9 @@ def simulated_annealing_core_logarithmic(
 
                 atom_other = grid_current[i, j]
 
-                # Energía que perdemos
-                dx_old_Ti = float(ti_x - i)
-                dy_old_Ti = float(ti_y - j)
+                # Energía que perdemos (distancias en Angstroms)
+                dx_old_Ti = float(ti_x - i) * GRID_SPACING
+                dy_old_Ti = float(ti_y - j) * GRID_SPACING
                 r_old_Ti = np.sqrt(dx_old_Ti * dx_old_Ti + dy_old_Ti * dy_old_Ti)
                 D0_Ti = morse_params_array[2, atom_other, 0]
                 alpha_Ti = morse_params_array[2, atom_other, 1]
@@ -382,8 +402,8 @@ def simulated_annealing_core_logarithmic(
                 exp2_term = exp_term * exp_term
                 U_old_Ti = D0_Ti * (exp2_term - 2.0 * exp_term)
 
-                dx_old_Fe = float(fe_x - i)
-                dy_old_Fe = float(fe_y - j)
+                dx_old_Fe = float(fe_x - i) * GRID_SPACING
+                dy_old_Fe = float(fe_y - j) * GRID_SPACING
                 r_old_Fe = np.sqrt(dx_old_Fe * dx_old_Fe + dy_old_Fe * dy_old_Fe)
                 D0_Fe = morse_params_array[0, atom_other, 0]
                 alpha_Fe = morse_params_array[0, atom_other, 1]
@@ -393,17 +413,17 @@ def simulated_annealing_core_logarithmic(
                 exp2_term = exp_term * exp_term
                 U_old_Fe = D0_Fe * (exp2_term - 2.0 * exp_term)
 
-                # Energía que ganamos
-                dx_new_Ti = float(fe_x - i)
-                dy_new_Ti = float(fe_y - j)
+                # Energía que ganamos (distancias en Angstroms)
+                dx_new_Ti = float(fe_x - i) * GRID_SPACING
+                dy_new_Ti = float(fe_y - j) * GRID_SPACING
                 r_new_Ti = np.sqrt(dx_new_Ti * dx_new_Ti + dy_new_Ti * dy_new_Ti)
                 delta_r = r_new_Ti - r0_Ti
                 exp_term = np.exp(-alpha_Ti * delta_r)
                 exp2_term = exp_term * exp_term
                 U_new_Ti = D0_Ti * (exp2_term - 2.0 * exp_term)
 
-                dx_new_Fe = float(ti_x - i)
-                dy_new_Fe = float(ti_y - j)
+                dx_new_Fe = float(ti_x - i) * GRID_SPACING
+                dy_new_Fe = float(ti_y - j) * GRID_SPACING
                 r_new_Fe = np.sqrt(dx_new_Fe * dx_new_Fe + dy_new_Fe * dy_new_Fe)
                 delta_r = r_new_Fe - r0_Fe
                 exp_term = np.exp(-alpha_Fe * delta_r)
@@ -430,15 +450,15 @@ def simulated_annealing_core_logarithmic(
         # APLICAR MOVIMIENTO SI SE ACEPTA
         # ====================================================================
         if accept:
-            # Swap en la grilla
+            # Swap en la grilla (usar índices)
             grid_current[ti_x, ti_y] = 0  # Fe
             grid_current[fe_x, fe_y] = 2  # Ti
 
-            # Actualizar arrays de posiciones
-            Ti_current[ti_idx, 0] = fe_x
-            Ti_current[ti_idx, 1] = fe_y
-            Fe_current[fe_idx, 0] = ti_x
-            Fe_current[fe_idx, 1] = ti_y
+            # Actualizar arrays de posiciones (usar coordenadas en Angstroms)
+            Ti_current[ti_idx, 0] = fe_x_ang
+            Ti_current[ti_idx, 1] = fe_y_ang
+            Fe_current[fe_idx, 0] = ti_x_ang
+            Fe_current[fe_idx, 1] = ti_y_ang
 
             # Actualizar energía (incremental)
             energy_current += delta_E
