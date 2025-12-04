@@ -190,15 +190,15 @@ Número máximo de iteraciones & 20,000 \\
 La búsqueda por fuerza bruta evaluó todas las 12 posiciones posibles y encontró:
 
 \begin{itemize}
-    \item \textbf{Posición óptima}: Índice 2, coordenadas $(0, 2)$
-    \item \textbf{Energía mínima}: 11098.457987
+    \item \textbf{Posición óptima}: Índice 0, coordenadas $(0.0, 0.0)$
+    \item \textbf{Energía mínima}: -9.744382
     \item \textbf{Número de evaluaciones}: 12
 \end{itemize}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.6\textwidth]{images/fig1_configuracion_optima.png}
-\caption{Configuración óptima encontrada por búsqueda exhaustiva. El átomo de Ti (amarillo) se ubica en la posición índice 2 con coordenadas (0, 2), minimizando la energía total del sistema.}
+\caption{Configuración óptima encontrada por búsqueda exhaustiva. El átomo de Ti (amarillo) se ubica en la posición índice 0 con coordenadas (0.0, 0.0), minimizando la energía total del sistema.}
 \label{fig:configuracion_optima}
 \end{figure}
 
@@ -207,26 +207,26 @@ La búsqueda por fuerza bruta evaluó todas las 12 posiciones posibles y encontr
 El análisis reveló que existen \textbf{dos niveles de energía} claramente diferenciados:
 
 \begin{enumerate}
-    \item \textbf{Nivel óptimo} ($E = 11098.457987$): 8 posiciones
-    \begin{itemize}
-        \item Posiciones en los bordes laterales de la grilla
-        \item Índices: 1, 2, 4, 5, 6, 7, 9, 10
-    \end{itemize}
-
-    \item \textbf{Nivel subóptimo} ($E = 11344.515855$): 4 posiciones
+    \item \textbf{Nivel óptimo} ($E = -9.744382$): 4 posiciones
     \begin{itemize}
         \item Posiciones en las esquinas de la grilla
         \item Índices: 0, 3, 8, 11
-        \item Gap energético: $\Delta E = 246.057869$
+    \end{itemize}
+
+    \item \textbf{Nivel subóptimo} ($E = -9.157522$): 8 posiciones
+    \begin{itemize}
+        \item Posiciones en los bordes laterales de la grilla
+        \item Índices: 1, 2, 4, 5, 6, 7, 9, 10
+        \item Gap energético: $\Delta E = 0.586860$
     \end{itemize}
 \end{enumerate}
 
-Esta distribución bimodal indica una clara preferencia geométrica del sistema por ciertas posiciones.
+Esta distribución bimodal indica una clara preferencia geométrica del sistema por las esquinas, donde el Ti se encuentra más alejado de los átomos de Nd.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.7\textwidth]{images/fig2_distribucion_energias.png}
-\caption{Distribución de energías para las 12 configuraciones posibles. Se observan claramente dos niveles de energía: 8 posiciones con energía óptima (11098.458) y 4 posiciones subóptimas en las esquinas (11344.516).}
+\caption{Distribución de energías para las 12 configuraciones posibles. Se observan claramente dos niveles de energía: 4 posiciones con energía óptima en las esquinas (-9.744) y 8 posiciones subóptimas en los bordes laterales (-9.158).}
 \label{fig:distribucion_energias}
 \end{figure}
 
@@ -237,10 +237,10 @@ Esta distribución bimodal indica una clara preferencia geométrica del sistema 
 Con los parámetros optimizados, Simulated Annealing demostró excelente desempeño:
 
 \begin{itemize}
-    \item \textbf{Mejor energía encontrada}: 11098.457987 (óptimo global)
+    \item \textbf{Mejor energía encontrada}: -9.744382 (óptimo global)
     \item \textbf{Gap con óptimo}: $0.00000000$ (convergencia exacta)
-    \item \textbf{Tasa de aceptación}: 0.435
-    \item \textbf{Tasa de mejora}: 0.423
+    \item \textbf{Tasa de aceptación}: 0.193
+    \item \textbf{Tasa de mejora}: 0.182
 \end{itemize}
 
 \paragraph{Robustez: Múltiples Ejecuciones}
@@ -253,7 +253,7 @@ Para validar la robustez del algoritmo, se ejecutaron 50 pruebas independientes 
 \toprule
 \textbf{Métrica} & \textbf{Valor} \\
 \midrule
-Energía promedio & $11098.457987 \pm 0.000000$ \\
+Energía promedio & $-9.744382 \pm 0.000000$ \\
 Tasa de éxito (encontrar óptimo) & 100.0\% \\
 Ejecuciones exitosas & 50/50 \\
 Varianza de energía & $0.0000000000$ \\
@@ -284,8 +284,8 @@ Se realizó un grid search exhaustivo probando 4 valores de temperatura inicial 
 Este resultado demuestra que el algoritmo es \textbf{robusto} ante variaciones en los parámetros, posiblemente debido a:
 \begin{enumerate}
     \item El espacio de búsqueda discreto y pequeño (12 posiciones)
-    \item La existencia de múltiples óptimos globales (8 posiciones con la misma energía mínima)
-    \item El número suficiente de iteraciones (20,000) que permite exploración exhaustiva
+    \item La existencia de múltiples óptimos globales (4 posiciones con la misma energía mínima)
+    \item El número suficiente de iteraciones (10,000-20,000) que permite exploración exhaustiva
 \end{enumerate}
 
 \begin{figure}[H]
@@ -310,7 +310,7 @@ Según Skelland, se espera que el Titanio prefiera sitios \textbf{alejados de la
 
 \subsubsection{Análisis de Contribuciones Energéticas}
 
-Para la posición óptima (índice 2, coordenadas $(0, 2)$):
+Para la posición óptima (índice 0, coordenadas $(0.0, 0.0)$):
 
 \begin{table}[H]
 \centering
@@ -318,13 +318,13 @@ Para la posición óptima (índice 2, coordenadas $(0, 2)$):
 \toprule
 \textbf{Componente} & \textbf{Valor} \\
 \midrule
-Energía Ti-Nd & 692.263356 \\
-Energía Ti-Fe & 418.002216 \\
-Energía total de Ti & 1110.265573 \\
+Energía Ti-Nd & -0.390298 \\
+Energía Ti-Fe & -1.647790 \\
+Energía total de Ti & -2.038087 \\
 \midrule
-Distancia mínima a Nd & 1.0000 \\
-Distancia promedio a Nd & 1.6626 \\
-Distancia mínima a Fe & 1.0000 \\
+Distancia mínima a Nd & 3.9598 Å \\
+Distancia promedio a Nd & 6.1003 Å \\
+Distancia mínima a Fe & 2.8000 Å \\
 \bottomrule
 \end{tabular}
 \caption{Análisis energético y geométrico de la posición óptima}
@@ -337,12 +337,12 @@ Distancia mínima a Fe & 1.0000 \\
 \centering
 \begin{tabular}{lcc}
 \toprule
-\textbf{Métrica} & \textbf{Mejor (índice 2)} & \textbf{Peor (índice 11)} \\
+\textbf{Métrica} & \textbf{Mejor (índice 0)} & \textbf{Peor (índice 1)} \\
 \midrule
-Coordenadas & $(0, 2)$ & $(3, 3)$ \\
-Energía total & 11098.457987 & 11344.515855 \\
-Dist. promedio a Nd & 1.6626 & 2.1787 \\
-Dist. mínima a Nd & 1.0000 & 1.4142 \\
+Coordenadas & $(0.0, 0.0)$ & $(0.0, 2.8)$ \\
+Energía total & -9.744382 & -9.157522 \\
+Dist. promedio a Nd (Å) & 6.1003 & 4.6552 \\
+Dist. mínima a Nd (Å) & 3.9598 & 2.8000 \\
 \bottomrule
 \end{tabular}
 \caption{Comparación entre la mejor y peor configuración}
@@ -354,61 +354,61 @@ Dist. mínima a Nd & 1.0000 & 1.4142 \\
 Se analizó la correlación entre la distancia promedio Ti-Nd y la energía total para las 12 posiciones:
 
 \begin{itemize}
-    \item \textbf{Correlación de Pearson}: $r = 0.8452$
-    \item \textbf{P-value}: $2.5770 \times 10^{-4}$ (altamente significativo)
+    \item \textbf{Correlación de Pearson}: $r = -0.9196$
+    \item \textbf{P-value}: $1.3477 \times 10^{-5}$ (altamente significativo)
 \end{itemize}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{images/fig4_correlacion_distancia_energia.png}
-\caption{Correlación entre distancia promedio Ti-Nd y energía total. La correlación positiva significativa ($r=0.8452$, $p<0.001$) indica que a mayor distancia al Nd, mayor es la energía (configuración menos estable), contradiciendo la hipótesis de Skelland.}
+\caption{Correlación entre distancia promedio Ti-Nd y energía total. La correlación negativa significativa ($r=-0.9196$, $p<0.001$) indica que a mayor distancia al Nd, menor es la energía (configuración más estable), confirmando la hipótesis de Skelland.}
 \label{fig:correlacion}
 \end{figure}
 
-Dado que $r > 0$ con significancia estadística ($p < 0.001$), se observa una \textbf{correlación positiva significativa}:
+Dado que $r < 0$ con significancia estadística ($p < 0.001$), se observa una \textbf{correlación negativa significativa}:
 
 \begin{center}
-\textit{A MAYOR distancia promedio a Nd, MAYOR energía (menos estable)}
+\textit{A MAYOR distancia promedio a Nd, MENOR energía (más estable)}
 \end{center}
 
 \subsubsection{Conclusión sobre la Hipótesis de Skelland}
 
-\begin{tcolorbox}[colback=red!5!white, colframe=red!75!black, title=Resultado]
-\textbf{La hipótesis de Skelland es RECHAZADA} para este sistema.
+\begin{tcolorbox}[colback=green!5!white, colframe=green!75!black, title=Resultado]
+\textbf{La hipótesis de Skelland es CONFIRMADA} para este sistema.
 
 \vspace{0.5em}
 
 Los datos experimentales muestran que:
 \begin{enumerate}
-    \item La posición óptima tiene \textbf{MENOR} distancia promedio a Nd (1.6626) que la peor posición (2.1787)
-    \item Existe correlación positiva significativa entre distancia a Nd y energía ($r = 0.8452$, $p < 0.001$)
-    \item El Ti prefiere posiciones \textbf{MÁS CERCANAS} a los átomos de Nd
+    \item La posición óptima tiene \textbf{MAYOR} distancia promedio a Nd (6.1003 Å) que la peor posición (4.6552 Å)
+    \item Existe correlación negativa significativa entre distancia a Nd y energía ($r = -0.9196$, $p < 0.001$)
+    \item El Ti prefiere posiciones \textbf{MÁS ALEJADAS} de los átomos de Nd (esquinas de la grilla)
 \end{enumerate}
 
 \vspace{0.5em}
 
-\textbf{Interpretación Física:} Aunque las interacciones Ti-Nd contribuyen positivamente a la energía (son repulsivas en comparación con otras interacciones), la configuración geométrica óptima requiere proximidad moderada a los átomos de Nd. Las posiciones en las esquinas, aunque más alejadas de Nd, resultan en configuraciones geométricas desfavorables que incrementan la energía total del sistema.
+\textbf{Interpretación Física:} Las interacciones Ti-Nd, aunque atractivas (contribución energética negativa), son menos favorables que las interacciones Ti-Fe. El sistema minimiza su energía colocando el Ti en las esquinas de la grilla, maximizando la distancia promedio a los átomos de Nd mientras mantiene interacciones favorables con los átomos de Fe. Las posiciones en los bordes laterales, más cercanas a Nd, resultan en mayor energía total.
 \end{tcolorbox}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{images/fig7_mejor_vs_peor.png}
-\caption{Comparación visual entre la mejor configuración (izquierda, índice 2) y la peor configuración (derecha, índice 11). La posición óptima se encuentra en el borde lateral mientras que la peor está en una esquina.}
+\caption{Comparación visual entre la mejor configuración (izquierda, índice 0) y la peor configuración (derecha, índice 1). La posición óptima se encuentra en una esquina (máxima distancia a Nd) mientras que la peor está en un borde lateral (más cercana a Nd).}
 \label{fig:mejor_vs_peor}
 \end{figure}
 
 \subsection{Conclusiones}
 
 \begin{enumerate}
-    \item Se identificó exitosamente la posición óptima para el átomo de Ti mediante búsqueda exhaustiva: posición $(0, 2)$ con energía mínima de 11098.457987
+    \item Se identificó exitosamente la posición óptima para el átomo de Ti mediante búsqueda exhaustiva: posición $(0.0, 0.0)$ con energía mínima de $-9.744382$
 
-    \item Existen 8 posiciones equivalentes con energía óptima (degeneración debido a simetría del sistema)
+    \item Existen 4 posiciones equivalentes con energía óptima ubicadas en las esquinas de la grilla (degeneración debido a simetría del sistema)
 
     \item Simulated Annealing demostró convergencia robusta al óptimo global con tasa de éxito del 100\% en 50 ejecuciones independientes
 
     \item El algoritmo es robusto ante variaciones de parámetros: todas las 28 combinaciones probadas encontraron el óptimo
 
-    \item La hipótesis de Skelland fue rechazada: el Ti prefiere posiciones más cercanas (no alejadas) a los átomos de Nd
+    \item La hipótesis de Skelland fue confirmada: el Ti prefiere posiciones más alejadas de los átomos de Nd, ubicándose en las esquinas de la grilla
 
-    \item El análisis de correlación reveló una relación positiva significativa ($r = 0.8452$, $p < 0.001$) entre distancia a Nd y energía
+    \item El análisis de correlación reveló una relación negativa significativa ($r = -0.9196$, $p < 0.001$) entre distancia a Nd y energía, indicando que a mayor distancia, menor energía (configuración más estable)
 \end{enumerate}
